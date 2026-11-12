@@ -57,4 +57,5 @@
   --size-detail-side: 360px;
   --size-dialog: 420px;
   --focus-ring: 2px solid var(--color-ink);
+  --focus-offset: 2px;
 }
