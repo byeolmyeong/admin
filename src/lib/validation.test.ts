@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { isValidDate, isValidLoginId, isValidName, normalizeLoginId, passwordProblem } from './validation';
+import {
+  compareVersions,
+  isValidDate,
+  isValidLoginId,
+  isValidName,
+  isValidStoreUrl,
+  isValidVersion,
+  normalizeLoginId,
+  passwordProblem,
+} from './validation';
 
 describe('loginId', () => {
   it('앞뒤 공백을 떼고 소문자로 바꾼다', () => {
@@ -51,5 +60,32 @@ describe('날짜(감사 로그의 from · to)', () => {
     expect(isValidDate('2026-11-10T00:00:00Z')).toBe(false);
     expect(isValidDate('2026-13-01')).toBe(false);
     expect(isValidDate('')).toBe(false);
+  });
+});
+
+describe('앱 설정', () => {
+  it('버전: 점으로 나눈 1~3개의 0 이상 정수, 자리마다 숫자 9개까지', () => {
+    for (const ok of ['1', '1.2', '1.2.3', '0', '0.0.1', '123456789.0.0', '01.2']) expect(isValidVersion(ok)).toBe(true);
+    for (const bad of ['', '1.2.3.4', 'v1.2', '1.2-beta', ' 1.2', '1.2 ', '1..2', '1.', '.1', '1234567890', '1.-2', '１.２']) {
+      expect(isValidVersion(bad)).toBe(false);
+    }
+  });
+
+  it('버전은 숫자로 견주고 빠진 자리는 0 으로 본다', () => {
+    expect(compareVersions('1.10.0', '1.9.9')).toBeGreaterThan(0);
+    expect(compareVersions('1.2', '1.2.0')).toBe(0);
+    expect(compareVersions('1', '1.0.1')).toBeLessThan(0);
+    expect(compareVersions('2', '1.99.99')).toBeGreaterThan(0);
+    expect(compareVersions('1.2.3', '1.2.3')).toBe(0);
+  });
+
+  it('스토어 주소: https:// 로 시작하고 호스트가 있고 공백이 없는 500자 이하', () => {
+    expect(isValidStoreUrl('https://apps.apple.com/kr/app/id0000000000')).toBe(true);
+    expect(isValidStoreUrl('https://play.google.com/store/apps/details?id=app.example')).toBe(true);
+    expect(isValidStoreUrl(`https://a.example/${'a'.repeat(500 - 18)}`)).toBe(true);
+    expect(isValidStoreUrl(`https://a.example/${'a'.repeat(500 - 17)}`)).toBe(false);
+    for (const bad of ['', 'http://a.example', 'itms-apps://a.example', 'market://details?id=a', 'a.example', 'https://', 'https:///path', ' https://a.example', 'https://a.example ', 'https://a.example/a b', 'HTTPS://a.example']) {
+      expect(isValidStoreUrl(bad)).toBe(false);
+    }
   });
 });

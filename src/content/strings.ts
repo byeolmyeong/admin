@@ -347,6 +347,39 @@ export const strings = {
     },
   },
 
+  appConfig: {
+    title: '앱 설정',
+    delayNote: '고친 값이 앱에 보이기까지 1분쯤 걸릴 수 있어요(앱이 설정을 1분 동안 기억해요).',
+    platforms: { ios: 'iOS', android: 'Android' },
+    platformTitle: (name: string) => `${name} 최소 버전`,
+    blockNote:
+      '"즉시 차단" 을 꺼 두면 앱은 켤 때와 다시 돌아올 때만 업데이트 화면을 보여 주고, 하던 일은 끊지 않아요. 켜면 서버가 최소 버전보다 낮은 앱의 요청을 바로 거절해서 그 앱은 업데이트 화면만 보여요.',
+    minVersion: '최소 버전',
+    minVersionHelp: '숫자를 점으로 나눈 1~3자리(예: 1.2.0). 비우면 정하지 않아요.',
+    storeUrl: '스토어 주소',
+    storeUrlHelp: 'https:// 로 시작하는 주소, 500자까지. 비우면 지워요.',
+    message: '안내 문구',
+    messageHelp: '업데이트 안내에 보여요. 비우면 앱의 기본 문구를 써요. 앞뒤 공백은 빼고 세요.',
+    blockNow: '즉시 차단',
+    updated: (name: string | null, time: string) => (name === null ? `마지막 수정 ${time}` : `마지막 수정 ${time} · ${name}`),
+    saved: (name: string) => `${name} 설정을 저장했어요. 앱에 보이기까지 1분쯤 걸릴 수 있어요.`,
+    confirm: {
+      blockTitle: '즉시 차단을 켤까요?',
+      blockBody: (version: string) => `${version} 미만의 앱은 업데이트 전까지 아무것도 할 수 없게 돼요.`,
+      blockConfirm: '차단하고 저장',
+      versionTitle: '최소 버전을 올릴까요?',
+      versionBody: (name: string, version: string) =>
+        `${version} 버전이 이미 스토어에 올라와 있어야 해요. 아직 없다면 ${name} 사용자 모두가 받을 수 없는 업데이트를 안내받아요.`,
+      versionConfirm: '올리고 저장',
+    },
+    errors: {
+      INVALID_VERSION: '최소 버전은 숫자를 점으로 나눈 1~3자리로 써 주세요(예: 1.2.0). 공백이나 글자는 쓸 수 없어요.',
+      INVALID_STORE_URL: '스토어 주소는 https:// 로 시작하고 공백이 없는 500자 이하의 주소여야 해요.',
+      INVALID_MESSAGE: '안내 문구는 200자까지 쓸 수 있어요. 줄이고 다시 저장해 주세요.',
+      BLOCK_REQUIRES_MIN_VERSION: '즉시 차단을 켜려면 최소 버전을 먼저 정해 주세요.',
+    },
+  },
+
   shell: {
     navLabel: '주요 메뉴',
     nav: { stats: '현황', inquiries: '문의', faqs: '자주 묻는 질문', admins: '관리자', auditLogs: '감사 로그', appConfig: '앱 설정' },

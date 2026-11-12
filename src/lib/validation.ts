@@ -33,3 +33,24 @@ export const isValidDate = (value: string): boolean => {
   const date = new Date(Date.UTC(year, month - 1, day));
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 };
+
+/** 계약 "앱 설정" 과 같은 검사. */
+export const STORE_URL_MAX = 500;
+export const APP_MESSAGE_MAX = 200;
+
+/** 버전: 점으로 나눈 1~3개의 0 이상 정수, 자리마다 숫자 9개까지. 앞뒤 공백도 틀린 값이다. */
+export const isValidVersion = (version: string): boolean => /^[0-9]{1,9}(\.[0-9]{1,9}){0,2}$/.test(version);
+
+/** 이미 isValidVersion 을 거친 두 값을 숫자로 견준다. 빠진 자리는 0 (`1.2` = `1.2.0`). a 가 높으면 양수. */
+export const compareVersions = (a: string, b: string): number => {
+  const [x, y] = [a.split('.').map(Number), b.split('.').map(Number)];
+  for (let i = 0; i < 3; i += 1) {
+    const diff = (x[i] ?? 0) - (y[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+};
+
+/** 스토어 주소: `https://` 로 시작하고 호스트가 있고 공백이 없는 500자 이하. 앞뒤 공백을 떼지 않는다. */
+export const isValidStoreUrl = (url: string): boolean =>
+  codePointLength(url) <= STORE_URL_MAX && /^https:\/\/[^\s/?#]+\S*$/.test(url);

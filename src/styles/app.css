@@ -667,6 +667,72 @@ select {
   overflow-wrap: anywhere;
 }
 
+/* 앱 설정 */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--size-card-min), 1fr));
+  align-items: start;
+  gap: var(--space-md);
+}
+
+.switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: var(--size-control-small);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.switch__input {
+  position: absolute;
+  width: var(--line);
+  height: var(--line);
+  opacity: 0;
+}
+
+.switch__track {
+  position: relative;
+  flex: none;
+  width: var(--size-switch-width);
+  height: var(--size-switch-height);
+  border-radius: var(--radius-pill);
+  background: var(--color-muted);
+}
+
+.switch__track::after {
+  content: '';
+  position: absolute;
+  top: calc((var(--size-switch-height) - var(--size-switch-knob)) / 2);
+  left: calc((var(--size-switch-height) - var(--size-switch-knob)) / 2);
+  width: var(--size-switch-knob);
+  height: var(--size-switch-knob);
+  border-radius: var(--radius-pill);
+  background: var(--color-paper);
+}
+
+.switch__input:checked + .switch__track {
+  background: var(--color-primary);
+}
+
+.switch__input:checked + .switch__track::after {
+  left: calc(var(--size-switch-width) - var(--size-switch-knob) - (var(--size-switch-height) - var(--size-switch-knob)) / 2);
+}
+
+.switch--danger .switch__input:checked + .switch__track {
+  background: var(--color-danger);
+}
+
+.switch__input:focus-visible + .switch__track {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.switch__input:disabled + .switch__track {
+  background: var(--color-hair);
+}
+
 /* 확인 창 */
 .dialog-backdrop {
   position: fixed;
