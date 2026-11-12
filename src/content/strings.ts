@@ -115,6 +115,7 @@ export const strings = {
       mailNote: '서버는 메일을 보내지 않아요. 답장은 내 메일에서 직접 보내요.',
       ownerRef: '보낸 계정',
       ownerRefHelp: '같은 계정이 보낸 문의는 이 값이 같아요. 계정을 찾는 값은 아니에요.',
+      ownerActions: '이 계정의 행동 보기',
       createdAt: '보낸 때',
       category: '종류',
       status: '처리 상태',

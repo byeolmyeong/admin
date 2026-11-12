@@ -70,6 +70,15 @@ describe('화면 틀', () => {
     expect(await screen.findByText('0123456789ab')).toBeInTheDocument();
   });
 
+  it('문의 상세의 "이 계정의 행동 보기" 는 그 계정으로 거른 감사 로그를 연다', async () => {
+    const { calls } = server();
+    renderApp(<AppRoutes />, { route: `/inquiries/${one.id}` });
+    await userEvent.click(await screen.findByRole('link', { name: strings.inquiries.detail.ownerActions }));
+    expect(await heading(strings.audit.title)).toBeInTheDocument();
+    await screen.findByRole('table', { name: strings.audit.listLabel });
+    expect(callsTo(calls, 'GET /admin/audit-logs')[0]?.query.toString()).toBe('actorType=USER&actorRef=0123456789ab&page=0&size=20');
+  });
+
   it('없는 주소는 현황으로 보낸다', async () => {
     server();
     renderApp(<AppRoutes />, { route: '/nowhere' });
