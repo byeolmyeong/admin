@@ -182,4 +182,68 @@ export const strings = {
       INVALID_ANSWER: '답은 1~2,000자로 써 주세요.',
     },
   },
+
+  /** 비밀번호 규칙(계약 "비밀번호 규칙"). 관리자 만들기와 비밀번호 변경이 함께 쓴다. */
+  passwordRule: {
+    help: '10자 이상, 72바이트 이하(영문 · 숫자 · 기호만이면 72자, 한글만이면 24자까지). 앞뒤 공백도 비밀번호에 들어가요.',
+    TOO_SHORT: '비밀번호는 10자 이상이어야 해요.',
+    TOO_LONG: '비밀번호가 너무 길어요. 72바이트 이하로 줄여 주세요(한글은 한 글자가 3바이트예요).',
+  },
+
+  admins: {
+    title: '관리자',
+    note: '관리자는 누구나 다른 관리자를 만들고, 사용을 중지하고, 다시 켤 수 있어요. 지우거나 이름 · 아이디를 바꾸는 기능은 없어요.',
+    listLabel: '관리자 목록',
+    columns: { name: '이름', loginId: '아이디', state: '상태', createdAt: '만든 때', action: '관리' },
+    active: '사용 중',
+    inactive: '중지됨',
+    me: '나',
+    empty: '관리자가 없어요.',
+    deactivate: '사용 중지',
+    reactivate: '다시 켜기',
+    deactivateTitle: '이 관리자의 사용을 중지할까요?',
+    deactivateBody: (name: string) =>
+      `${name} 님은 바로 로그아웃되고, 다시 켤 때까지 로그인할 수 없어요. 남긴 처리 기록은 그대로예요.`,
+    reactivateTitle: '이 관리자를 다시 켤까요?',
+    reactivateBody: (name: string) => `${name} 님이 다시 로그인할 수 있게 돼요.`,
+    done: {
+      created: (name: string) => `${name} 님을 관리자로 만들었어요. 처음 비밀번호를 안전하게 전해 주세요.`,
+      deactivated: (name: string) => `${name} 님의 사용을 중지했어요.`,
+      reactivated: (name: string) => `${name} 님을 다시 켰어요.`,
+    },
+    createTitle: '새 관리자 만들기',
+    loginId: '아이디',
+    loginIdHelp: '영문 소문자 · 숫자 · 마침표(.) · 밑줄(_) · 붙임표(-) 로 3~32자. 첫 글자는 소문자나 숫자예요. 대문자는 소문자로 바뀌어요.',
+    name: '이름',
+    nameHelp: '화면에 보이는 이름이에요. 1~40자.',
+    password: '처음 비밀번호',
+    passwordHelp: '받은 관리자가 로그인한 뒤 "비밀번호 변경" 에서 직접 바꿔요.',
+    createSubmit: '만들기',
+    errors: {
+      INVALID_LOGIN_ID: '아이디는 영문 소문자 · 숫자 · . _ - 로 3~32자이고, 첫 글자는 소문자나 숫자여야 해요.',
+      INVALID_NAME: '이름은 1~40자로 써 주세요.',
+      INVALID_PASSWORD: '비밀번호가 규칙에 맞지 않아요. 10자 이상, 72바이트 이하로 정해 주세요.',
+      LOGIN_ID_TAKEN: '이미 있는 아이디예요. 중지된 관리자의 아이디도 다시 쓸 수 없어요.',
+      CANNOT_DEACTIVATE_SELF: '자기 자신은 중지할 수 없어요.',
+      LAST_ACTIVE_ADMIN: '마지막 남은 사용 중인 관리자는 중지할 수 없어요.',
+      NOT_FOUND: '그 관리자를 찾을 수 없어요. 목록을 새로 고쳐 주세요.',
+    },
+  },
+
+  password: {
+    title: '비밀번호 변경',
+    note: '바꾸면 이 브라우저는 그대로 로그인돼 있고, 다른 곳에서 로그인한 내 세션은 모두 끝나요.',
+    current: '지금 비밀번호',
+    next: '새 비밀번호',
+    confirm: '새 비밀번호 한 번 더',
+    required: '지금 비밀번호를 입력해 주세요.',
+    mismatch: '새 비밀번호가 서로 달라요.',
+    submit: '비밀번호 바꾸기',
+    done: '비밀번호를 바꿨어요.',
+    errors: {
+      INVALID_CURRENT_PASSWORD: '지금 비밀번호가 맞지 않아요.',
+      INVALID_PASSWORD: '새 비밀번호가 규칙에 맞지 않아요. 10자 이상, 72바이트 이하로 정해 주세요.',
+      RATE_LIMITED: '시도가 너무 많아요. 10분쯤 뒤에 다시 해 주세요.',
+    },
+  },
 } as const;
