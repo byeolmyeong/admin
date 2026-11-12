@@ -456,6 +456,15 @@ select {
   border-radius: var(--radius-card);
 }
 
+.card--strong {
+  border-color: var(--color-ink);
+}
+
+.card--alert {
+  border-color: var(--color-danger);
+  box-shadow: inset 0 0 0 var(--line) var(--color-danger);
+}
+
 /* 현황 */
 .tiles {
   display: grid;

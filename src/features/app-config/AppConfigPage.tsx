@@ -13,6 +13,7 @@ import { codePointLength, formatDateTime } from '../../lib/text';
 import { useLoad } from '../../lib/useLoad';
 import { APP_MESSAGE_MAX, compareVersions, isValidStoreUrl, isValidVersion } from '../../lib/validation';
 import { useAuth } from '../auth/AuthContext';
+import { MaintenanceCard } from './MaintenanceCard';
 
 const t = strings.appConfig;
 type Message = { tone: 'success' | 'error'; text: string };
@@ -150,6 +151,7 @@ export function AppConfigPage() {
       {state.status === 'error' && <LoadError message={errorMessage(state.error)} onRetry={reload} />}
       {config && (
         <>
+          <MaintenanceCard maintenance={config.maintenance} onSaved={(next) => setData({ ...config, maintenance: next })} />
           <div className="cards">
             {PLATFORMS.map((platform) => (
               <PlatformCard key={platform} platform={platform} config={config[platform]} onSaved={(next) => setData({ ...config, [platform]: next })} />
