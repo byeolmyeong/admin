@@ -1,11 +1,11 @@
 # byeolmyeong-admin
 
-별명(가칭) 서비스의 관리자 페이지. 문의 관리 · 현황 숫자 · 자주 묻는 질문 편집 · 관리자 계정.
+별명(가칭) 서비스의 관리자 페이지. 문의 관리 · 현황 숫자 · 자주 묻는 질문 편집 · 관리자 계정 · 감사 로그 · 앱 설정(최소 버전 · 점검).
 
 - 앱: https://github.com/byeolmyeong/byeolmyeong-app
 - 서버: https://github.com/byeolmyeong/byeolmyeong-api (관리자 API 도 서버에 있다. 이 저장소는 화면만 가진다)
 - 서버 계약: 서버 저장소 `docs/architecture.md` 의 "관리자 API" 절, 결정 `docs/decisions/014-admin-back-office.md`
-- 이 저장소의 규칙: `CLAUDE.md` · 스택 결정: `docs/decisions/001-stack.md`
+- 이 저장소의 규칙: `CLAUDE.md` · 결정: `docs/decisions/`(001 스택 · 002 화면 틀의 점검 상태)
 
 ## 준비
 
@@ -51,18 +51,24 @@ npm run build      # dist/ 에 정적 파일
 | `/stats` | 현황 (첫 화면) |
 | `/inquiries` · `/inquiries/:id` | 문의 목록(`?status=&category=&page=`) · 문의 한 건 |
 | `/faqs` | 자주 묻는 질문 편집 · 초안 불러오기 |
-| `/admins` | 관리자 목록 · 만들기 · 사용 중지/다시 켜기 |
+| `/admins` | 관리자 목록 · 만들기 · 사용 중지/다시 켜기 · 다른 관리자의 비밀번호 재설정 |
+| `/audit-logs` | 감사 로그(`?actorType=&action=&from=&to=&actorRef=&page=`) |
+| `/app-config` | 앱 설정: 점검 켜기/끄기 · iOS/Android 최소 버전 · 스토어 주소 · 안내 문구 · 즉시 차단 |
 | `/password` | 내 비밀번호 변경 |
 
 - 로그인하면 세션 토큰을 `sessionStorage` 에 둔다(탭을 닫으면 사라진다). 세션은 로그인부터 12시간이고 늘어나지 않는다. 로그아웃 · 401 · 만료 때 지우고 로그인 화면으로 간다.
 - 서버는 메일을 보내지 않는다. 문의의 답장은 관리자가 자기 메일로 보낸다(화면은 주소 복사와 `mailto:` 링크만 준다).
 - 자주 묻는 질문의 공개 · 수정은 앱에 보이기까지 5분쯤 걸릴 수 있다(앱 쪽 응답이 5분 캐시된다).
+- 감사 로그는 "누가 무엇을 언제" 만 보여 준다. 날짜 조건(`from` · `to`)은 한국 시간의 날짜이고, 계정 조건(`actorRef`)은 전체가 같은 것만 찾는다. 문의 상세의 "이 계정의 행동 보기" 가 그 계정으로 거른 목록을 연다.
+- 앱 설정은 고친 값이 앱에 보이기까지 1분쯤 걸릴 수 있다. 즉시 차단을 켜거나 최소 버전을 올릴 때, 점검을 켤 때는 먼저 묻는다.
+- 점검이 켜져 있으면 모든 화면 위에 "점검 중" 띠가 보인다. 로그인한 뒤 한 번 받고 앱 설정 화면이 받아 오거나 저장할 때 고친다(다른 관리자가 바꾼 것은 새로 고치거나 앱 설정을 열어야 보인다 — 결정 002).
+- 다른 관리자의 비밀번호를 다시 정하면 그 관리자의 세션이 모두 끝난다. 새 비밀번호는 정한 사람이 직접 전한다.
 - "초안 불러오기" 는 `src/content/faq-seed.json` 의 초안 가운데 같은 질문이 없는 것만 비공개로 만든다.
 
 ## 구조
 
 - `src/app/` 라우터 · 화면 틀 · 구역 목록(`sections.tsx` — 새 구역은 여기에 한 줄)
-- `src/features/` 화면(auth · stats · inquiries · faqs · admins)
+- `src/features/` 화면(auth · stats · inquiries · faqs · admins · audit · app-config)
 - `src/components/` 공용 부품 · `src/content/` 문구와 FAQ 초안
 - `src/lib/` 서버 호출(`api/`)과 응답 검사 · 세션 보관 · 순수 함수
 - `src/styles/tokens.css` 디자인 값(앱의 `theme.ts` 와 같은 값) · `app.css` 화면 스타일
