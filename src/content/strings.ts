@@ -72,7 +72,7 @@ export const strings = {
     last7Days: '최근 7일',
     last30Days: '최근 30일',
     reportStatus: { DONE: '완료', WRITING: '쓰는 중', FAILED: '실패' },
-    topics: { LOVE: '연애' },
+    topics: { LOVE: '연애', FUTURE: '미래', SYNASTRY: '궁합' },
   },
 
   inquiries: {

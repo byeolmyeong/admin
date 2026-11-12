@@ -44,6 +44,17 @@ describe('현황', () => {
     expect(t.note).toContain('지금 남아 있는 것');
   });
 
+  it('방향성 제시의 세 주제(연애 · 미래 · 궁합)는 우리말로 적는다', async () => {
+    const body = stats();
+    body.directions = { total: 6, byTopic: { LOVE: 3, FUTURE: 2, SYNASTRY: 1 } };
+    mockFetch({ 'GET /admin/me': me, 'GET /admin/stats': { status: 200, body } });
+    renderApp(<StatsPage />);
+    expect(await screen.findByRole('region', { name: t.groups.directions })).toBeInTheDocument();
+    expect(tile(t.groups.directions).getByText('미래').nextSibling).toHaveTextContent('2');
+    expect(tile(t.groups.directions).getByText('궁합').nextSibling).toHaveTextContent('1');
+    expect(tile(t.groups.directions).queryByText('FUTURE')).not.toBeInTheDocument();
+  });
+
   it('모르는 키는 받은 그대로 보여 주고, 빈 byTopic 도 그린다', async () => {
     const body = stats();
     body.directions = { total: 13, byTopic: { LOVE: 9, CAREER: 4 } };
