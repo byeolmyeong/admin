@@ -416,6 +416,30 @@ select {
   padding: var(--space-xl);
 }
 
+/* 점검 중 띠: 모든 화면 위에 보인다 */
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  max-width: var(--size-content);
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius);
+  background: var(--color-danger);
+  color: var(--color-paper);
+}
+
+.banner a {
+  font: var(--type-table);
+  font-weight: 600;
+}
+
+.banner a:focus-visible {
+  outline-color: var(--color-paper);
+}
+
 .page {
   display: flex;
   flex-direction: column;

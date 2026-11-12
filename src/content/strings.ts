@@ -405,5 +405,7 @@ export const strings = {
     changePassword: '비밀번호 변경',
     logout: '로그아웃',
     meError: '내 정보를 받지 못했어요.',
+    maintenanceBanner: '점검 중 — 사용자는 앱을 쓸 수 없어요',
+    maintenanceLink: '앱 설정에서 끄기',
   },
 } as const;

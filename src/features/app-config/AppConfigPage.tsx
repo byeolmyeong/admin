@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { LoadError, Loading, Notice } from '../../components/Feedback';
@@ -14,6 +14,7 @@ import { useLoad } from '../../lib/useLoad';
 import { APP_MESSAGE_MAX, compareVersions, isValidStoreUrl, isValidVersion } from '../../lib/validation';
 import { useAuth } from '../auth/AuthContext';
 import { MaintenanceCard } from './MaintenanceCard';
+import { useMaintenance } from './MaintenanceContext';
 
 const t = strings.appConfig;
 type Message = { tone: 'success' | 'error'; text: string };
@@ -140,6 +141,13 @@ export function AppConfigPage() {
   const { api } = useAuth();
   const { state, reload, setData } = useLoad(useCallback(() => api.getAppConfig(), [api]));
   const config = state.status === 'ready' ? state.data : null;
+
+  // 받아 왔거나 저장한 점검 상태를 화면 틀의 띠에 알린다(결정 002).
+  const { report } = useMaintenance();
+  const maintenance = config?.maintenance;
+  useEffect(() => {
+    if (maintenance) report(maintenance);
+  }, [maintenance, report]);
 
   return (
     <div className="page">

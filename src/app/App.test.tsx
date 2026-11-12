@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { strings } from '../content/strings';
-import { admin, adminAccount, appConfig, auditLog, faq, inquiry, stats } from '../test/fixtures';
+import { admin, adminAccount, appConfig, auditLog, faq, inquiry, maintenance, stats } from '../test/fixtures';
 import { callsTo, mockFetch } from '../test/mockFetch';
 import type { Route } from '../test/mockFetch';
 import { renderApp } from '../test/render';
@@ -132,6 +132,87 @@ describe('화면 틀', () => {
     routes['GET /admin/me'] = { status: 200, body: admin };
     await userEvent.click(account.getByRole('button', { name: strings.common.retry }));
     expect(await account.findByText(admin.name)).toBeInTheDocument();
+  });
+});
+
+describe('점검 알림', () => {
+  const CONFIG = 'GET /admin/app-config';
+  const PUT = 'PUT /admin/app-config/maintenance';
+  const on = { status: 200, body: appConfig({ maintenance: maintenance({ active: true }) }) };
+  const banner = () => screen.findByText(t.maintenanceBanner);
+
+  it('점검이 켜져 있으면 어느 화면에서나 띠와 앱 설정으로 가는 링크를 보인다', async () => {
+    const { calls } = server({ [CONFIG]: on });
+    const user = userEvent.setup();
+    renderApp(<AppRoutes />);
+    expect(await banner()).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: t.maintenanceLink })).toHaveAttribute('href', '/app-config');
+    await user.click(nav().getByRole('link', { name: t.nav.inquiries }));
+    await heading(strings.inquiries.title);
+    expect(screen.getByText(t.maintenanceBanner)).toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: t.changePassword }));
+    await heading(strings.password.title);
+    expect(screen.getByText(t.maintenanceBanner)).toBeInTheDocument();
+    // 로그인한 뒤 한 번만 받는다(화면을 옮겨도 다시 묻지 않는다)
+    expect(callsTo(calls, CONFIG)).toHaveLength(1);
+    await user.click(screen.getByRole('link', { name: t.maintenanceLink }));
+    expect(await heading(strings.appConfig.title)).toBeInTheDocument();
+  });
+
+  it('꺼져 있거나 받지 못했으면 띠가 없다', async () => {
+    const { calls } = server();
+    const view = renderApp(<AppRoutes />);
+    await heading(strings.stats.title);
+    await vi.waitFor(() => expect(callsTo(calls, CONFIG)).toHaveLength(1));
+    expect(screen.queryByText(t.maintenanceBanner)).not.toBeInTheDocument();
+    view.unmount();
+
+    const failed = server({ [CONFIG]: { status: 500, body: { error: 'X' } } });
+    renderApp(<AppRoutes />);
+    await heading(strings.stats.title);
+    await vi.waitFor(() => expect(callsTo(failed.calls, CONFIG)).toHaveLength(1));
+    expect(screen.queryByText(t.maintenanceBanner)).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('앱 설정에서 켜면 띠가 바로 나타나고, 끄면 사라진다', async () => {
+    const m = strings.appConfig.maintenance;
+    // 저장한 값이 다음 GET 에도 나오는 서버
+    const mock = server({
+      [PUT]: (req) => {
+        const saved = maintenance(req.body as { active: boolean; message: string | null });
+        mock.routes[CONFIG] = { status: 200, body: appConfig({ maintenance: saved }) };
+        return { status: 200, body: saved };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp(<AppRoutes />, { route: '/app-config' });
+    const card = within(await screen.findByRole('form', { name: m.title }));
+    expect(screen.queryByText(t.maintenanceBanner)).not.toBeInTheDocument();
+    await user.click(card.getByRole('switch', { name: m.active }));
+    await user.click(card.getByRole('button', { name: strings.common.save }));
+    await user.click(within(screen.getByRole('alertdialog', { name: m.confirmTitle })).getByRole('button', { name: m.confirmLabel }));
+    expect(await banner()).toBeInTheDocument();
+    await user.click(nav().getByRole('link', { name: t.nav.stats }));
+    await heading(strings.stats.title);
+    expect(screen.getByText(t.maintenanceBanner)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('link', { name: t.maintenanceLink }));
+    const again = within(await screen.findByRole('form', { name: m.title }));
+    await user.click(again.getByRole('switch', { name: m.active }));
+    await user.click(again.getByRole('button', { name: strings.common.save }));
+    expect(await again.findByText(m.savedOff)).toBeInTheDocument();
+    expect(screen.queryByText(t.maintenanceBanner)).not.toBeInTheDocument();
+  });
+
+  it('다른 관리자가 켠 점검은 앱 설정 화면을 열 때 띠에도 반영된다', async () => {
+    const { routes } = server();
+    const user = userEvent.setup();
+    renderApp(<AppRoutes />);
+    await heading(strings.stats.title);
+    routes[CONFIG] = on;
+    await user.click(nav().getByRole('link', { name: t.nav.appConfig }));
+    expect(await banner()).toBeInTheDocument();
   });
 });
 
