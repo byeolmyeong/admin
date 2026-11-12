@@ -193,7 +193,7 @@ export const strings = {
 
   admins: {
     title: '관리자',
-    note: '관리자는 누구나 다른 관리자를 만들고, 사용을 중지하고, 다시 켤 수 있어요. 지우거나 이름 · 아이디를 바꾸는 기능은 없어요.',
+    note: '관리자는 누구나 다른 관리자를 만들고, 사용을 중지하고, 다시 켜고, 비밀번호를 다시 정해 줄 수 있어요. 지우거나 이름 · 아이디를 바꾸는 기능은 없어요.',
     listLabel: '관리자 목록',
     columns: { name: '이름', loginId: '아이디', state: '상태', createdAt: '만든 때', action: '관리' },
     active: '사용 중',
@@ -211,6 +211,22 @@ export const strings = {
       created: (name: string) => `${name} 님을 관리자로 만들었어요. 처음 비밀번호를 안전하게 전해 주세요.`,
       deactivated: (name: string) => `${name} 님의 사용을 중지했어요.`,
       reactivated: (name: string) => `${name} 님을 다시 켰어요.`,
+    },
+    reset: {
+      button: '비밀번호 재설정',
+      title: (name: string) => `${name} 님의 비밀번호 재설정`,
+      note: '지금 비밀번호는 묻지 않아요. 다시 정하면 이 관리자의 세션이 모두 끝나고, 예전 비밀번호로는 로그인할 수 없어요.',
+      password: '새 비밀번호',
+      confirm: '새 비밀번호 한 번 더',
+      mismatch: '새 비밀번호가 서로 달라요.',
+      submit: '다시 정하기',
+      done: (name: string) =>
+        `${name} 님의 비밀번호를 다시 정했어요. 그 관리자의 세션은 모두 끝났어요. 새 비밀번호는 서버가 알려 주지 않으니 직접 전해 주세요. 받은 분은 로그인한 뒤 "비밀번호 변경" 에서 바꿔야 해요.`,
+      errors: {
+        USE_OWN_PASSWORD_CHANGE: '내 비밀번호는 여기서 다시 정할 수 없어요. "비밀번호 변경" 에서 지금 비밀번호를 확인하고 바꿔 주세요.',
+        INVALID_PASSWORD: '비밀번호가 규칙에 맞지 않아요. 10자 이상, 72바이트 이하로 정해 주세요.',
+        NOT_FOUND: '그 관리자를 찾을 수 없어요. 목록을 새로 고쳐 주세요.',
+      },
     },
     createTitle: '새 관리자 만들기',
     loginId: '아이디',

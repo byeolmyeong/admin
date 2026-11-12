@@ -10,6 +10,7 @@ import { formatDateTime } from '../../lib/text';
 import { useLoad } from '../../lib/useLoad';
 import { isValidLoginId, isValidName, normalizeLoginId, passwordProblem } from '../../lib/validation';
 import { useAuth } from '../auth/AuthContext';
+import { ResetPasswordDialog } from './ResetPasswordDialog';
 
 const t = strings.admins;
 type Message = { tone: 'success' | 'error'; text: string };
@@ -79,6 +80,7 @@ export function AdminsPage() {
   const { api, admin: me } = useAuth();
   const { state, reload, setData } = useLoad(useCallback(() => api.listAdmins(), [api]));
   const [asking, setAsking] = useState<AdminAccount | null>(null);
+  const [resetting, setResetting] = useState<AdminAccount | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<Message | null>(null);
   const admins = state.status === 'ready' ? state.data : null;
@@ -133,11 +135,16 @@ export function AdminsPage() {
                 </td>
                 <td className="mono table__nowrap">{formatDateTime(item.createdAt)}</td>
                 <td className="table__nowrap">
-                  {/* 자기 자신은 끌 수 없다(계약: CANNOT_DEACTIVATE_SELF). 내 정보를 받기 전에는 서버가 막는다. */}
+                  {/* 자기 자신은 끌 수 없고(CANNOT_DEACTIVATE_SELF) 자기 비밀번호는 "비밀번호 변경" 으로만 바꾼다(USE_OWN_PASSWORD_CHANGE). 내 정보를 받기 전에는 서버가 막는다. */}
                   {me?.id !== item.id && (
-                    <button type="button" className="btn btn--secondary btn--small" disabled={busy} onClick={() => setAsking(item)}>
-                      {item.active ? t.deactivate : t.reactivate}
-                    </button>
+                    <span className="row">
+                      <button type="button" className="btn btn--secondary btn--small" disabled={busy} onClick={() => setAsking(item)}>
+                        {item.active ? t.deactivate : t.reactivate}
+                      </button>
+                      <button type="button" className="btn btn--secondary btn--small" disabled={busy} onClick={() => setResetting(item)}>
+                        {t.reset.button}
+                      </button>
+                    </span>
                   )}
                 </td>
               </tr>
@@ -165,6 +172,17 @@ export function AdminsPage() {
           busy={busy}
           onConfirm={() => setActive(asking, !asking.active)}
           onCancel={() => setAsking(null)}
+        />
+      )}
+
+      {resetting && (
+        <ResetPasswordDialog
+          target={resetting}
+          onDone={() => {
+            setMessage({ tone: 'success', text: t.reset.done(resetting.name) });
+            setResetting(null);
+          }}
+          onCancel={() => setResetting(null)}
         />
       )}
     </div>
