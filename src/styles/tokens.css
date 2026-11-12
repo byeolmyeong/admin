@@ -1,0 +1,61 @@
+/*
+ * 디자인 값의 단일 출처. 앱(byeolmyeong-app)의 src/constants/theme.ts 와 같은 값이다(앱 결정 018):
+ * 흰 바탕, 중립 회색, Pretendard, 주색은 초록 하나. 화면 스타일(app.css)은 색·글자·간격을 여기서만 가져온다.
+ * 데스크톱에 맞춰 더한 값(메뉴 폭 · 작은 버튼 높이 등)은 "관리 화면" 묶음에 따로 적었다.
+ */
+:root {
+  /* 색 */
+  --color-paper: #ffffff;
+  --color-ink: #191919;
+  --color-gray: #6a6a6a;
+  --color-hint: #989898;
+  --color-muted: #c6c6c6;
+  --color-hair: #e6e6e6;
+  --color-fill: #f6f6f6;
+  --color-primary: #3ddb99;
+  --color-primary-light: #ecfbf5;
+  --color-danger: #f73838;
+  --color-dim: rgba(0, 0, 0, 0.4);
+
+  /* 글자: 크기 / 줄높이 / 굵기. 글자 사이는 크기의 -2% */
+  --font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --letter-spacing: -0.02em;
+  --type-title: 700 24px/34px var(--font-family);
+  --type-heading: 600 18px/25px var(--font-family);
+  --type-button: 600 16px/24px var(--font-family);
+  --type-body: 400 15px/23px var(--font-family);
+  --type-table: 500 14px/20px var(--font-family);
+  --type-label: 500 12px/16px var(--font-family);
+  --type-number: 600 24px/34px var(--font-family);
+
+  /* 간격 4 · 8 · 12 · 16 · 24 · 32 · 48 */
+  --space-xxs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-xxl: 48px;
+
+  /* 모서리 · 선 */
+  --radius: 12px;
+  --radius-card: 16px;
+  --line: 1px;
+
+  /* 부품 크기 */
+  --size-button: 56px;
+  --size-input: 56px;
+  --size-row: 48px;
+  --size-app-width: 390px;
+
+  /* 관리 화면(데스크톱)에 맞춰 더한 값 */
+  --size-side: 240px;
+  --size-content: 1120px;
+  --size-narrow: 480px;
+  --size-control-small: 40px;
+  --size-tile-min: 220px;
+  --size-detail-side: 360px;
+  --size-dialog: 420px;
+  --focus-ring: 2px solid var(--color-ink);
+  --focus-offset: 2px;
+}

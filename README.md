@@ -1,8 +1,68 @@
 # byeolmyeong-admin
 
-별명(가칭) 서비스의 관리자 페이지. 문의 관리 · 현황 숫자 · FAQ 편집 · 관리자 계정.
+별명(가칭) 서비스의 관리자 페이지. 문의 관리 · 현황 숫자 · 자주 묻는 질문 편집 · 관리자 계정.
 
 - 앱: https://github.com/byeolmyeong/byeolmyeong-app
 - 서버: https://github.com/byeolmyeong/byeolmyeong-api (관리자 API 도 서버에 있다. 이 저장소는 화면만 가진다)
+- 서버 계약: 서버 저장소 `docs/architecture.md` 의 "관리자 API" 절, 결정 `docs/decisions/014-admin-back-office.md`
+- 이 저장소의 규칙: `CLAUDE.md` · 스택 결정: `docs/decisions/001-stack.md`
 
-아직 뼈대만 있다. 구조와 명령은 만들어지는 대로 여기에 적는다.
+## 준비
+
+Node 22(`.nvmrc`).
+
+```sh
+nvm use
+npm install
+cp .env.example .env.local   # 값을 채운다. .env.local 은 커밋하지 않는다
+```
+
+환경 변수(이름만 — 값은 `.env.local` 에):
+
+| 이름 | 뜻 |
+|---|---|
+| `VITE_API_URL` | 서버 주소. `스킴://호스트[:포트]`, 끝에 `/` 없이 |
+
+## 실행
+
+```sh
+npm run dev        # http://localhost:5173 (포트 고정)
+```
+
+서버 쪽에 필요한 것(값은 서버의 환경에 둔다. 여기에는 이름만 적는다):
+
+- `ADMIN_ALLOWED_ORIGINS` — 이 화면이 열리는 주소가 들어 있어야 브라우저가 `/admin/**` 를 부를 수 있다. 로컬 개발이면 `http://localhost:5173`(끝에 `/` 없이). 없으면 모든 호출이 "서버에 연결하지 못했어요" 로 보인다.
+- 첫 관리자는 화면이나 API 로 만들 수 없다. 서버가 뜰 때 관리자가 한 명도 없고 `ADMIN_BOOTSTRAP_ID` · `ADMIN_BOOTSTRAP_PASSWORD` 가 둘 다 있으면 그 값으로 만들어진다(아이디는 소문자 · 숫자 · `.` `_` `-` 3~32자, 비밀번호는 10자 이상 72바이트 이하. 규칙에 안 맞으면 만들어지지 않는다). 관리자가 한 명이라도 있으면 두 변수는 읽히지 않는다. 그 뒤의 관리자는 화면의 "관리자" 에서 만든다.
+
+## 검사
+
+```sh
+npx tsc --noEmit   # 타입
+npm run lint       # ESLint
+npm test           # Vitest (서버 호출은 fetch 를 흉내 낸다)
+npm run build      # dist/ 에 정적 파일
+```
+
+## 화면과 주소
+
+| 주소 | 화면 |
+|---|---|
+| `/login` | 로그인 |
+| `/stats` | 현황 (첫 화면) |
+| `/inquiries` · `/inquiries/:id` | 문의 목록(`?status=&category=&page=`) · 문의 한 건 |
+| `/faqs` | 자주 묻는 질문 편집 · 초안 불러오기 |
+| `/admins` | 관리자 목록 · 만들기 · 사용 중지/다시 켜기 |
+| `/password` | 내 비밀번호 변경 |
+
+- 로그인하면 세션 토큰을 `sessionStorage` 에 둔다(탭을 닫으면 사라진다). 세션은 로그인부터 12시간이고 늘어나지 않는다. 로그아웃 · 401 · 만료 때 지우고 로그인 화면으로 간다.
+- 서버는 메일을 보내지 않는다. 문의의 답장은 관리자가 자기 메일로 보낸다(화면은 주소 복사와 `mailto:` 링크만 준다).
+- 자주 묻는 질문의 공개 · 수정은 앱에 보이기까지 5분쯤 걸릴 수 있다(앱 쪽 응답이 5분 캐시된다).
+- "초안 불러오기" 는 `src/content/faq-seed.json` 의 초안 가운데 같은 질문이 없는 것만 비공개로 만든다.
+
+## 구조
+
+- `src/app/` 라우터 · 화면 틀 · 구역 목록(`sections.tsx` — 새 구역은 여기에 한 줄)
+- `src/features/` 화면(auth · stats · inquiries · faqs · admins)
+- `src/components/` 공용 부품 · `src/content/` 문구와 FAQ 초안
+- `src/lib/` 서버 호출(`api/`)과 응답 검사 · 세션 보관 · 순수 함수
+- `src/styles/tokens.css` 디자인 값(앱의 `theme.ts` 와 같은 값) · `app.css` 화면 스타일
