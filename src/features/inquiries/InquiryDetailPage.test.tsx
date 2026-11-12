@@ -43,6 +43,12 @@ describe('문의 상세', () => {
     expect(screen.getByText(t.notHandled)).toBeInTheDocument();
   });
 
+  it('"이 계정의 행동 보기" 는 그 ownerRef 의 사용자 행동으로 거른 감사 로그로 간다', async () => {
+    mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one } });
+    open();
+    expect(await screen.findByRole('link', { name: t.ownerActions })).toHaveAttribute('href', '/audit-logs?actorType=USER&actorRef=0123456789ab');
+  });
+
   it('답장 이메일: mailto 링크와 복사 버튼, 서버가 메일을 보내지 않는다는 안내', async () => {
     mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one } });
     const user = userEvent.setup();

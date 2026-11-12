@@ -1,6 +1,32 @@
 import type { Client } from './client';
-import { arrayOf, isAdmin, isAdminAccount, isFaq, isInquiry, isInquiryPage, isLoginResult, isStats } from './guards';
-import type { Admin, AdminAccount, Faq, Inquiry, InquiryPage, LoginResult, Stats } from './types';
+import {
+  arrayOf,
+  isAdmin,
+  isAdminAccount,
+  isAppConfig,
+  isAuditLogPage,
+  isFaq,
+  isInquiry,
+  isInquiryPage,
+  isLoginResult,
+  isMaintenance,
+  isPlatformConfig,
+  isStats,
+} from './guards';
+import type {
+  Admin,
+  AdminAccount,
+  AppConfig,
+  AuditLogPage,
+  Faq,
+  Inquiry,
+  InquiryPage,
+  LoginResult,
+  Maintenance,
+  Platform,
+  PlatformConfig,
+  Stats,
+} from './types';
 
 export interface InquiryQuery {
   status?: string;
@@ -21,6 +47,31 @@ export interface FaqPatch {
   published?: boolean;
 }
 
+/** 모두 선택. 빈 값은 보내지 않는다(서버도 빈 값을 없는 것으로 본다). from · to 는 한국 시간의 날짜 YYYY-MM-DD. */
+export interface AuditLogQuery {
+  actorType?: string;
+  action?: string;
+  from?: string;
+  to?: string;
+  actorRef?: string;
+  page?: number;
+  size?: number;
+}
+
+/** 네 키를 모두 보낸다. 값이 없으면 null(빈 글이 아니다). */
+export interface PlatformConfigInput {
+  minVersion: string | null;
+  storeUrl: string | null;
+  message: string | null;
+  blockNow: boolean;
+}
+
+/** 두 키를 모두 보낸다. */
+export interface MaintenanceInput {
+  active: boolean;
+  message: string | null;
+}
+
 const id = encodeURIComponent;
 
 /** 계약 "관리자 API" 의 경로 표 그대로. 여기에 없는 경로는 서버에도 없다. */
@@ -37,6 +88,9 @@ export const createAdminApi = (client: Client) => ({
     client.request('POST', '/admin/admins', { body: input, guard: isAdminAccount }),
   setAdminActive: (adminId: string, active: boolean): Promise<AdminAccount> =>
     client.request('PATCH', `/admin/admins/${id(adminId)}`, { body: { active }, guard: isAdminAccount }),
+  /** 다른 관리자의 비밀번호를 다시 정한다. 자기 것은 changePassword 다(서버가 409 로 막는다). */
+  resetAdminPassword: (adminId: string, password: string): Promise<void> =>
+    client.request('PUT', `/admin/admins/${id(adminId)}/password`, { body: { password } }),
 
   listInquiries: (query: InquiryQuery): Promise<InquiryPage> => {
     const params = new URLSearchParams();
@@ -62,6 +116,25 @@ export const createAdminApi = (client: Client) => ({
   deleteFaq: (faqId: string): Promise<void> => client.request('DELETE', `/admin/faqs/${id(faqId)}`),
   orderFaqs: (ids: string[]): Promise<Faq[]> =>
     client.request('PUT', '/admin/faqs/order', { body: { ids }, guard: arrayOf(isFaq) }),
+
+  listAuditLogs: (query: AuditLogQuery): Promise<AuditLogPage> => {
+    const params = new URLSearchParams();
+    if (query.actorType) params.set('actorType', query.actorType);
+    if (query.action) params.set('action', query.action);
+    if (query.from) params.set('from', query.from);
+    if (query.to) params.set('to', query.to);
+    if (query.actorRef) params.set('actorRef', query.actorRef);
+    if (query.page !== undefined) params.set('page', String(query.page));
+    if (query.size !== undefined) params.set('size', String(query.size));
+    const qs = params.toString();
+    return client.request('GET', `/admin/audit-logs${qs ? `?${qs}` : ''}`, { guard: isAuditLogPage });
+  },
+
+  getAppConfig: (): Promise<AppConfig> => client.request('GET', '/admin/app-config', { guard: isAppConfig }),
+  putPlatformConfig: (platform: Platform, input: PlatformConfigInput): Promise<PlatformConfig> =>
+    client.request('PUT', `/admin/app-config/${platform}`, { body: input, guard: isPlatformConfig }),
+  putMaintenance: (input: MaintenanceInput): Promise<Maintenance> =>
+    client.request('PUT', '/admin/app-config/maintenance', { body: input, guard: isMaintenance }),
 });
 
 export type AdminApi = ReturnType<typeof createAdminApi>;

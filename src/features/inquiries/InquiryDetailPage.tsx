@@ -93,7 +93,10 @@ function Detail({ inquiry, onChanged, onGone }: DetailProps) {
             <dd className="mono selectable">{inquiry.ownerRef}</dd>
           </div>
         </dl>
-        <p className="quiet">{t.ownerRefHelp}</p>
+        <p className="quiet">
+          {t.ownerRefHelp}{' '}
+          <Link to={`/audit-logs?actorType=USER&actorRef=${encodeURIComponent(inquiry.ownerRef)}`}>{t.ownerActions}</Link>
+        </p>
 
         <h2 className="section-title" id={bodyId}>
           {t.body}

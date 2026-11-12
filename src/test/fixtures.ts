@@ -1,4 +1,4 @@
-import type { Admin, AdminAccount, Faq, Inquiry, Stats } from '../lib/api/types';
+import type { Admin, AdminAccount, AppConfig, AuditLog, Faq, Inquiry, Maintenance, PlatformConfig, Stats } from '../lib/api/types';
 
 export const admin: Admin = { id: '11111111-1111-4111-8111-111111111111', loginId: 'owner', name: '김관리' };
 
@@ -48,3 +48,42 @@ export const stats = (): Stats => ({
 
 /** 로그인 응답. expiresAt 은 먼 미래로 둔다(만료 테스트는 따로 정한다). */
 export const loginResult = (expiresAt = '2099-01-01T00:00:00Z') => ({ token: 'tok-test', expiresAt, admin });
+
+export const auditLog = (over: Partial<AuditLog> = {}): AuditLog => ({
+  id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  occurredAt: '2026-11-12T04:05:06Z',
+  actorType: 'ADMIN',
+  actor: { ref: 'root-admin', label: 'root-admin' },
+  action: 'ADMIN_LOGIN',
+  targetType: null,
+  targetId: null,
+  outcome: 'SUCCESS',
+  detail: null,
+  ...over,
+});
+
+/** 한 번도 고치지 않은 플랫폼 설정(계약의 처음 값) */
+export const platformConfig = (over: Partial<PlatformConfig> = {}): PlatformConfig => ({
+  minVersion: null,
+  storeUrl: null,
+  message: null,
+  blockNow: false,
+  updatedAt: '2026-11-12T04:05:06Z',
+  updatedBy: null,
+  ...over,
+});
+
+export const maintenance = (over: Partial<Maintenance> = {}): Maintenance => ({
+  active: false,
+  message: null,
+  updatedAt: '2026-11-12T04:05:06Z',
+  updatedBy: null,
+  ...over,
+});
+
+export const appConfig = (over: Partial<AppConfig> = {}): AppConfig => ({
+  ios: platformConfig(),
+  android: platformConfig(),
+  maintenance: maintenance(),
+  ...over,
+});

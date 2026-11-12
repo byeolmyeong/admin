@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { adminAccount, admin, faq, inquiry, loginResult, stats } from '../../test/fixtures';
+import { adminAccount, admin, appConfig, auditLog, faq, inquiry, loginResult, maintenance, platformConfig, stats } from '../../test/fixtures';
 import {
   arrayOf,
   isAdmin,
   isAdminAccount,
+  isAppConfig,
+  isAuditLog,
+  isAuditLogPage,
   isFaq,
   isInquiry,
   isInquiryPage,
   isLoginResult,
+  isMaintenance,
+  isPlatformConfig,
   isStats,
 } from './guards';
 
@@ -66,5 +71,51 @@ describe('guards', () => {
     expect(arrayOf(isFaq)([])).toBe(true);
     expect(arrayOf(isFaq)([faq(), {}])).toBe(false);
     expect(arrayOf(isFaq)({})).toBe(false);
+  });
+
+  it('AuditLog: actor · 대상 · detail 은 값이 없으면 null 이고 키가 빠지면 틀리다', () => {
+    expect(isAuditLog(auditLog())).toBe(true);
+    expect(isAuditLog(auditLog({ actorType: 'SYSTEM', actor: null, outcome: 'FAILURE' }))).toBe(true);
+    expect(isAuditLog(auditLog({ action: 'NEW_CODE', targetType: 'INQUIRY', targetId: 'x', detail: { status: 'DONE', memoChanged: true } }))).toBe(true);
+    const { detail: _detail, ...withoutDetail } = auditLog();
+    void _detail;
+    expect(isAuditLog(withoutDetail)).toBe(false);
+    const { actor: _actor, ...withoutActor } = auditLog();
+    void _actor;
+    expect(isAuditLog(withoutActor)).toBe(false);
+    expect(isAuditLog({ ...auditLog(), actor: { ref: 'a' } })).toBe(false);
+    expect(isAuditLog({ ...auditLog(), targetId: 3 })).toBe(false);
+    expect(isAuditLog({ ...auditLog(), detail: [] })).toBe(false);
+    expect(isAuditLog({ ...auditLog(), detail: 'x' })).toBe(false);
+    expect(isAuditLog({ ...auditLog(), outcome: null })).toBe(false);
+  });
+
+  it('AuditLogPage', () => {
+    expect(isAuditLogPage({ items: [auditLog()], page: 0, size: 20, total: 1 })).toBe(true);
+    expect(isAuditLogPage({ items: [], page: 3, size: 20, total: 7 })).toBe(true);
+    expect(isAuditLogPage({ items: [{}], page: 0, size: 20, total: 1 })).toBe(false);
+    expect(isAuditLogPage({ items: [], page: 0, size: 20 })).toBe(false);
+  });
+
+  it('PlatformConfig · Maintenance · AppConfig', () => {
+    expect(isPlatformConfig(platformConfig())).toBe(true);
+    expect(
+      isPlatformConfig(platformConfig({ minVersion: '1.2', storeUrl: 'https://a.example', message: '글', blockNow: true, updatedBy: { id: admin.id, name: '김관리' } })),
+    ).toBe(true);
+    expect(isPlatformConfig({ ...platformConfig(), blockNow: null })).toBe(false);
+    expect(isPlatformConfig({ ...platformConfig(), minVersion: 1.2 })).toBe(false);
+    const { storeUrl: _storeUrl, ...withoutUrl } = platformConfig();
+    void _storeUrl;
+    expect(isPlatformConfig(withoutUrl)).toBe(false);
+    expect(isPlatformConfig({ ...platformConfig(), updatedBy: { id: admin.id } })).toBe(false);
+
+    expect(isMaintenance(maintenance())).toBe(true);
+    expect(isMaintenance(maintenance({ active: true, message: '점검해요' }))).toBe(true);
+    expect(isMaintenance({ ...maintenance(), active: 'true' })).toBe(false);
+    expect(isMaintenance({ ...maintenance(), message: undefined })).toBe(false);
+
+    expect(isAppConfig(appConfig())).toBe(true);
+    expect(isAppConfig({ ios: platformConfig(), android: platformConfig() })).toBe(false);
+    expect(isAppConfig({ ...appConfig(), android: {} })).toBe(false);
   });
 });

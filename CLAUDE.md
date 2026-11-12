@@ -1,12 +1,12 @@
 # 관리 화면 저장소 (byeolmyeong-admin)
 
-별명(가칭) 서비스의 관리자 웹 화면. 문의 관리 · 현황 숫자 · 자주 묻는 질문 편집 · 관리자 계정. 화면만 가진다 — API 는 서버 저장소(`byeolmyeong-api`)에 있다.
+별명(가칭) 서비스의 관리자 웹 화면. 문의 관리 · 현황 숫자 · 자주 묻는 질문 편집 · 관리자 계정 · 감사 로그 · 앱 설정. 화면만 가진다 — API 는 서버 저장소(`byeolmyeong-api`)에 있다.
 
 ## 서버 계약 (단일 출처)
 - 서버 저장소 `docs/architecture.md` 의 "관리자 API" 절과 `docs/decisions/014-admin-back-office.md`.
 - 그 절에 없는 경로·필드·오류 코드를 만들어 쓰지 않는다. 계약이 바뀌면 `src/lib/api/` 의 타입·검사와 테스트를 같은 커밋에서 고친다.
 
-## 스택 (결정: docs/decisions/001-stack.md)
+## 스택 (결정: docs/decisions/001-stack.md · 화면 틀의 점검 상태는 002)
 Vite · React · TypeScript(strict) · React Router · CSS 파일(토큰) · Vitest + Testing Library · ESLint. Node 22(`.nvmrc`).
 
 ## 명령어 (Node 22)
@@ -16,7 +16,7 @@ Vite · React · TypeScript(strict) · React Router · CSS 파일(토큰) · Vit
 
 ## 디렉터리 (이름이 곧 지시)
 - `src/app/` 라우터 · 화면 틀(왼쪽 메뉴) · 구역 목록(`sections.tsx` — 메뉴와 라우트가 여기서 나온다. 새 구역은 여기에 한 줄)
-- `src/features/<영역>/` 화면과 그 로직(auth · stats · inquiries · faqs · admins)
+- `src/features/<영역>/` 화면과 그 로직(auth · stats · inquiries · faqs · admins · audit · app-config)
 - `src/components/` 공용 부품 · `src/content/` 문구(`strings.ts`)와 FAQ 초안(`faq-seed.json`)
 - `src/lib/` 서버 호출(`api/`) · 세션 보관 · 글자 수 세기 등 순수 함수
 - `src/styles/` 디자인 값(`tokens.css`)과 화면 스타일(`app.css`)

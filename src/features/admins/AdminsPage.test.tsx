@@ -154,3 +154,89 @@ describe('관리자', () => {
     expect(row(other.name).getByText(t.active)).toBeInTheDocument();
   });
 });
+
+describe('관리자 — 비밀번호 재설정', () => {
+  const r = t.reset;
+  const PUT = `PUT /admin/admins/${other.id}/password`;
+  const list = { status: 200, body: [self, other, off] };
+  const dialog = () => within(screen.getByRole('dialog', { name: r.title(other.name) }));
+  const openDialog = async () => {
+    renderApp(<AdminsPage />);
+    await screen.findByRole('table');
+    await userEvent.click(row(other.name).getByRole('button', { name: r.button }));
+  };
+  const fill = async (password: string, confirm = password) => {
+    if (password) await userEvent.type(dialog().getByLabelText(r.password), password);
+    if (confirm) await userEvent.type(dialog().getByLabelText(r.confirm), confirm);
+    await userEvent.click(dialog().getByRole('button', { name: r.submit }));
+  };
+
+  it('내 줄에는 버튼이 없고, 다른 관리자(중지된 관리자도)의 줄에는 있다', async () => {
+    mockFetch({ 'GET /admin/me': me, 'GET /admin/admins': list });
+    renderApp(<AdminsPage />);
+    await screen.findByRole('table');
+    expect(await row(self.name).findByText(t.me)).toBeInTheDocument();
+    expect(row(self.name).queryByRole('button', { name: r.button })).not.toBeInTheDocument();
+    expect(row(other.name).getByRole('button', { name: r.button })).toBeInTheDocument();
+    expect(row(off.name).getByRole('button', { name: r.button })).toBeInTheDocument();
+  });
+
+  it('새 비밀번호를 두 번 받아 password 만 보내고, 세션이 끝났고 직접 전해야 한다고 알린다', async () => {
+    const { calls } = mockFetch({ 'GET /admin/me': me, 'GET /admin/admins': list, [PUT]: { status: 204 } });
+    await openDialog();
+    expect(dialog().getByText(r.note)).toBeInTheDocument();
+    expect(dialog().getByText(strings.passwordRule.help)).toBeInTheDocument();
+    expect(dialog().getByLabelText(r.password)).toHaveAttribute('type', 'password');
+    await fill(' new pw 12345 ');
+    expect(await screen.findByText(r.done(other.name))).toBeInTheDocument();
+    expect(r.done(other.name)).toMatch(/세션은 모두 끝났어요/);
+    expect(r.done(other.name)).toMatch(/직접 전해/);
+    expect(r.done(other.name)).toMatch(/로그인한 뒤 "비밀번호 변경" 에서 바꿔야/);
+    expect(callsTo(calls, PUT)).toHaveLength(1);
+    expect(callsTo(calls, PUT)[0]?.body).toEqual({ password: ' new pw 12345 ' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    // 알림에 비밀번호를 적지 않는다
+    expect(screen.queryByText(/new pw 12345/)).not.toBeInTheDocument();
+  });
+
+  it('보내기 전에 규칙을 본다: 10자 · 72바이트 · 두 번이 같은지', async () => {
+    const { calls } = mockFetch({ 'GET /admin/me': me, 'GET /admin/admins': list });
+    await openDialog();
+    await fill('short');
+    expect(dialog().getByText(strings.passwordRule.TOO_SHORT)).toBeInTheDocument();
+    await userEvent.clear(dialog().getByLabelText(r.password));
+    await userEvent.clear(dialog().getByLabelText(r.confirm));
+    await fill('가'.repeat(25));
+    expect(dialog().getByText(strings.passwordRule.TOO_LONG)).toBeInTheDocument();
+    await userEvent.clear(dialog().getByLabelText(r.password));
+    await userEvent.clear(dialog().getByLabelText(r.confirm));
+    await fill('pw-1234567890', 'pw-1234567891');
+    expect(dialog().getByText(r.mismatch)).toBeInTheDocument();
+    expect(callsTo(calls, PUT)).toHaveLength(0);
+  });
+
+  it('취소하면 보내지 않고 닫는다', async () => {
+    const { calls } = mockFetch({ 'GET /admin/me': me, 'GET /admin/admins': list });
+    await openDialog();
+    await userEvent.type(dialog().getByLabelText(r.password), 'pw-1234567890');
+    await userEvent.click(dialog().getByRole('button', { name: strings.common.cancel }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(callsTo(calls, PUT)).toHaveLength(0);
+    // 다시 열면 칸이 비어 있다
+    await userEvent.click(row(other.name).getByRole('button', { name: r.button }));
+    expect(dialog().getByLabelText(r.password)).toHaveValue('');
+  });
+
+  it.each([
+    ['USE_OWN_PASSWORD_CHANGE', 409, r.errors.USE_OWN_PASSWORD_CHANGE],
+    ['INVALID_PASSWORD', 400, r.errors.INVALID_PASSWORD],
+    ['NOT_FOUND', 404, r.errors.NOT_FOUND],
+  ])('%s 를 알리고 비밀번호 칸을 비운다', async (code, status, text) => {
+    mockFetch({ 'GET /admin/me': me, 'GET /admin/admins': list, [PUT]: { status, body: { error: code } } });
+    await openDialog();
+    await fill('pw-1234567890');
+    expect(await dialog().findByRole('alert')).toHaveTextContent(text);
+    expect(dialog().getByLabelText(r.password)).toHaveValue('');
+    expect(dialog().getByLabelText(r.confirm)).toHaveValue('');
+  });
+});

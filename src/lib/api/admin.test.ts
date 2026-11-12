@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { adminAccount, admin, faq, inquiry, loginResult, stats } from '../../test/fixtures';
+import { adminAccount, admin, appConfig, auditLog, faq, inquiry, loginResult, maintenance, platformConfig, stats } from '../../test/fixtures';
 import { mockFetch } from '../../test/mockFetch';
 import { createAdminApi } from './admin';
 import { createClient } from './client';
@@ -84,6 +84,37 @@ describe('createAdminApi — 계약의 경로·메서드·본문', () => {
     await expect(api().deleteFaq(one.id)).resolves.toBeUndefined();
     await expect(api().orderFaqs([one.id])).resolves.toEqual([one]);
     expect(calls[4]?.body).toEqual({ ids: [one.id] });
+  });
+
+  it('다른 관리자의 비밀번호 다시 정하기: password 만 보낸다', async () => {
+    const { calls } = mockFetch({ [`PUT /admin/admins/${admin.id}/password`]: { status: 204 } });
+    await expect(api().resetAdminPassword(admin.id, 'pw-1234567890')).resolves.toBeUndefined();
+    expect(calls[0]?.body).toEqual({ password: 'pw-1234567890' });
+  });
+
+  it('감사 기록: 빈 조건은 쿼리에 넣지 않는다', async () => {
+    const page = { items: [auditLog()], page: 1, size: 20, total: 21 };
+    const { calls } = mockFetch({ 'GET /admin/audit-logs': { status: 200, body: page } });
+    await expect(
+      api().listAuditLogs({ actorType: 'ADMIN', action: '', from: '2026-11-10', to: '2026-11-12', actorRef: 'root-admin', page: 1, size: 20 }),
+    ).resolves.toEqual(page);
+    expect(calls[0]?.query.toString()).toBe('actorType=ADMIN&from=2026-11-10&to=2026-11-12&actorRef=root-admin&page=1&size=20');
+    await api().listAuditLogs({});
+    expect(calls[1]?.query.toString()).toBe('');
+  });
+
+  it('앱 설정: 받기 · 플랫폼 고치기(네 키 모두) · 점검 고치기(두 키 모두)', async () => {
+    const saved = platformConfig({ minVersion: '1.2.0', blockNow: true });
+    const { calls } = mockFetch({
+      'GET /admin/app-config': { status: 200, body: appConfig() },
+      'PUT /admin/app-config/ios': { status: 200, body: saved },
+      'PUT /admin/app-config/maintenance': { status: 200, body: maintenance({ active: true }) },
+    });
+    await expect(api().getAppConfig()).resolves.toEqual(appConfig());
+    await expect(api().putPlatformConfig('ios', { minVersion: '1.2.0', storeUrl: null, message: null, blockNow: true })).resolves.toEqual(saved);
+    expect(calls[1]?.body).toEqual({ minVersion: '1.2.0', storeUrl: null, message: null, blockNow: true });
+    await expect(api().putMaintenance({ active: true, message: null })).resolves.toMatchObject({ active: true });
+    expect(calls[2]?.body).toEqual({ active: true, message: null });
   });
 
   it('경로의 id 는 인코딩한다', async () => {

@@ -293,6 +293,18 @@ select {
   color: var(--color-gray);
 }
 
+.badge--danger {
+  background: var(--color-danger);
+  color: var(--color-paper);
+  font-weight: 600;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs);
+}
+
 /* 로그인: 가운데에 앱 화면 폭 한 단 */
 .login {
   display: flex;
@@ -404,6 +416,30 @@ select {
   padding: var(--space-xl);
 }
 
+/* 점검 중 띠: 모든 화면 위에 보인다 */
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  max-width: var(--size-content);
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius);
+  background: var(--color-danger);
+  color: var(--color-paper);
+}
+
+.banner a {
+  font: var(--type-table);
+  font-weight: 600;
+}
+
+.banner a:focus-visible {
+  outline-color: var(--color-paper);
+}
+
 .page {
   display: flex;
   flex-direction: column;
@@ -442,6 +478,15 @@ select {
   padding: var(--space-lg);
   border: var(--line) solid var(--color-hair);
   border-radius: var(--radius-card);
+}
+
+.card--strong {
+  border-color: var(--color-ink);
+}
+
+.card--alert {
+  border-color: var(--color-danger);
+  box-shadow: inset 0 0 0 var(--line) var(--color-danger);
 }
 
 /* 현황 */
@@ -552,6 +597,17 @@ select {
   font: var(--type-table);
 }
 
+.filters--wrap {
+  flex-wrap: wrap;
+}
+
+.filter .input {
+  width: auto;
+  height: var(--size-control-small);
+  padding: 0 var(--space-sm);
+  font: var(--type-table);
+}
+
 .pager {
   display: flex;
   align-items: center;
@@ -642,6 +698,72 @@ select {
 .faq__question {
   font: var(--type-heading);
   overflow-wrap: anywhere;
+}
+
+/* 앱 설정 */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--size-card-min), 1fr));
+  align-items: start;
+  gap: var(--space-md);
+}
+
+.switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: var(--size-control-small);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.switch__input {
+  position: absolute;
+  width: var(--line);
+  height: var(--line);
+  opacity: 0;
+}
+
+.switch__track {
+  position: relative;
+  flex: none;
+  width: var(--size-switch-width);
+  height: var(--size-switch-height);
+  border-radius: var(--radius-pill);
+  background: var(--color-muted);
+}
+
+.switch__track::after {
+  content: '';
+  position: absolute;
+  top: calc((var(--size-switch-height) - var(--size-switch-knob)) / 2);
+  left: calc((var(--size-switch-height) - var(--size-switch-knob)) / 2);
+  width: var(--size-switch-knob);
+  height: var(--size-switch-knob);
+  border-radius: var(--radius-pill);
+  background: var(--color-paper);
+}
+
+.switch__input:checked + .switch__track {
+  background: var(--color-primary);
+}
+
+.switch__input:checked + .switch__track::after {
+  left: calc(var(--size-switch-width) - var(--size-switch-knob) - (var(--size-switch-height) - var(--size-switch-knob)) / 2);
+}
+
+.switch--danger .switch__input:checked + .switch__track {
+  background: var(--color-danger);
+}
+
+.switch__input:focus-visible + .switch__track {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.switch__input:disabled + .switch__track {
+  background: var(--color-hair);
 }
 
 /* 확인 창 */
