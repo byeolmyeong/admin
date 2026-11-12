@@ -246,4 +246,13 @@ export const strings = {
       RATE_LIMITED: '시도가 너무 많아요. 10분쯤 뒤에 다시 해 주세요.',
     },
   },
+
+  shell: {
+    navLabel: '주요 메뉴',
+    nav: { stats: '현황', inquiries: '문의', faqs: '자주 묻는 질문', admins: '관리자' },
+    accountLabel: '로그인한 관리자',
+    changePassword: '비밀번호 변경',
+    logout: '로그아웃',
+    meError: '내 정보를 받지 못했어요.',
+  },
 } as const;
