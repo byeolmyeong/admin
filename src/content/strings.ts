@@ -48,4 +48,30 @@ export const strings = {
       INVALID_REQUEST: '아이디와 비밀번호를 입력해 주세요.',
     },
   },
+
+  /** 문의의 처리 상태(문의 화면과 현황이 함께 쓴다) */
+  inquiryStatus: { NEW: '새 문의', IN_PROGRESS: '처리 중', DONE: '끝남' },
+
+  stats: {
+    title: '현황',
+    refresh: '새로 고침',
+    generatedAt: (time: string) => `${time}에 센 값`,
+    note: '모든 숫자는 지금 남아 있는 것이에요(누적이 아니에요). 계정이 지워지면 그 사람의 기록도 함께 빠져요.',
+    noteReports:
+      '리포트의 "실패" 는 지금 실패 상태로 남아 있는 수예요(다시 요청해 성공하면 "완료" 로 바뀌어요). "쓰는 중" 에는 서버가 꺼져 멈춘 것도 들어 있어요. 저장되지 않는 생성 실패는 세지 못해요.',
+    groups: {
+      accounts: '계정',
+      profiles: '출생 정보를 저장한 계정',
+      readings: '요약 해석',
+      reports: '심층 리포트',
+      synastries: '궁합',
+      synastryReports: '궁합 리포트',
+      directions: '방향성 제시',
+      inquiries: '문의',
+    },
+    last7Days: '최근 7일',
+    last30Days: '최근 30일',
+    reportStatus: { DONE: '완료', WRITING: '쓰는 중', FAILED: '실패' },
+    topics: { LOVE: '연애' },
+  },
 } as const;
