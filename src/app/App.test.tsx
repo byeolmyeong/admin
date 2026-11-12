@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { strings } from '../content/strings';
-import { admin, adminAccount, faq, inquiry, stats } from '../test/fixtures';
+import { admin, adminAccount, auditLog, faq, inquiry, stats } from '../test/fixtures';
 import { callsTo, mockFetch } from '../test/mockFetch';
 import type { Route } from '../test/mockFetch';
 import { renderApp } from '../test/render';
@@ -19,6 +19,7 @@ const server = (over: Record<string, Route> = {}) =>
     [`GET /admin/inquiries/${one.id}`]: { status: 200, body: one },
     'GET /admin/faqs': { status: 200, body: [faq()] },
     'GET /admin/admins': { status: 200, body: [adminAccount()] },
+    'GET /admin/audit-logs': { status: 200, body: { items: [auditLog()], page: 0, size: 20, total: 1 } },
     'POST /admin/auth/logout': { status: 204 },
     ...over,
   });
@@ -26,10 +27,10 @@ const nav = () => within(screen.getByRole('navigation', { name: t.navLabel }));
 const heading = (name: string) => screen.findByRole('heading', { level: 1, name });
 
 describe('화면 틀', () => {
-  it('왼쪽 메뉴: 현황 · 문의 · 자주 묻는 질문 · 관리자, 그리고 내 이름 · 비밀번호 변경 · 로그아웃', async () => {
+  it('왼쪽 메뉴: 현황 · 문의 · 자주 묻는 질문 · 관리자 · 감사 로그, 그리고 내 이름 · 비밀번호 변경 · 로그아웃', async () => {
     server();
     renderApp(<AppRoutes />);
-    expect(nav().getAllByRole('link').map((a) => a.textContent)).toEqual([t.nav.stats, t.nav.inquiries, t.nav.faqs, t.nav.admins]);
+    expect(nav().getAllByRole('link').map((a) => a.textContent)).toEqual([t.nav.stats, t.nav.inquiries, t.nav.faqs, t.nav.admins, t.nav.auditLogs]);
     const account = within(screen.getByRole('group', { name: t.accountLabel }));
     expect(await account.findByText(admin.name)).toBeInTheDocument();
     expect(account.getByRole('link', { name: t.changePassword })).toHaveAttribute('href', '/password');
@@ -37,7 +38,7 @@ describe('화면 틀', () => {
   });
 
   it('메뉴와 라우트는 구역 목록에서 나온다(새 구역은 sections 에 한 줄)', () => {
-    expect(sections.map((s) => s.to)).toEqual(['/stats', '/inquiries', '/faqs', '/admins']);
+    expect(sections.map((s) => s.to)).toEqual(['/stats', '/inquiries', '/faqs', '/admins', '/audit-logs']);
     for (const section of sections) expect(section.routes.length).toBeGreaterThan(0);
   });
 
@@ -56,6 +57,8 @@ describe('화면 틀', () => {
     expect(await heading(strings.faqs.title)).toBeInTheDocument();
     await user.click(nav().getByRole('link', { name: t.nav.admins }));
     expect(await heading(strings.admins.title)).toBeInTheDocument();
+    await user.click(nav().getByRole('link', { name: t.nav.auditLogs }));
+    expect(await heading(strings.audit.title)).toBeInTheDocument();
     await user.click(screen.getByRole('link', { name: t.changePassword }));
     expect(await heading(strings.password.title)).toBeInTheDocument();
   });
@@ -69,7 +72,7 @@ describe('화면 틀', () => {
 
   it('없는 주소는 현황으로 보낸다', async () => {
     server();
-    renderApp(<AppRoutes />, { route: '/audit-logs' });
+    renderApp(<AppRoutes />, { route: '/nowhere' });
     expect(await heading(strings.stats.title)).toBeInTheDocument();
   });
 

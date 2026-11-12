@@ -293,6 +293,18 @@ select {
   color: var(--color-gray);
 }
 
+.badge--danger {
+  background: var(--color-danger);
+  color: var(--color-paper);
+  font-weight: 600;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs);
+}
+
 /* 로그인: 가운데에 앱 화면 폭 한 단 */
 .login {
   display: flex;
@@ -546,6 +558,17 @@ select {
 }
 
 .filter .select {
+  width: auto;
+  height: var(--size-control-small);
+  padding: 0 var(--space-sm);
+  font: var(--type-table);
+}
+
+.filters--wrap {
+  flex-wrap: wrap;
+}
+
+.filter .input {
   width: auto;
   height: var(--size-control-small);
   padding: 0 var(--space-sm);

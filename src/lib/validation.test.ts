@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isValidLoginId, isValidName, normalizeLoginId, passwordProblem } from './validation';
+import { isValidDate, isValidLoginId, isValidName, normalizeLoginId, passwordProblem } from './validation';
 
 describe('loginId', () => {
   it('앞뒤 공백을 떼고 소문자로 바꾼다', () => {
@@ -39,5 +39,17 @@ describe('passwordProblem', () => {
   });
   it('앞뒤 공백을 떼지 않고 센다', () => {
     expect(passwordProblem(' 12345678 ')).toBeNull();
+  });
+});
+
+describe('날짜(감사 로그의 from · to)', () => {
+  it('YYYY-MM-DD 이고 달력에 있는 날이어야 한다', () => {
+    expect(isValidDate('2026-11-10')).toBe(true);
+    expect(isValidDate('2028-02-29')).toBe(true);
+    expect(isValidDate('2026-02-30')).toBe(false);
+    expect(isValidDate('2026-11-1')).toBe(false);
+    expect(isValidDate('2026-11-10T00:00:00Z')).toBe(false);
+    expect(isValidDate('2026-13-01')).toBe(false);
+    expect(isValidDate('')).toBe(false);
   });
 });

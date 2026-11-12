@@ -24,3 +24,12 @@ export const passwordProblem = (password: string): PasswordProblem | null => {
   if (utf8ByteLength(password) > PASSWORD_MAX_BYTES) return 'TOO_LONG';
   return null;
 };
+
+/** 계약 "감사 기록" 의 from · to: 한국 시간의 날짜 `YYYY-MM-DD`, 달력에 있는 날. */
+export const isValidDate = (value: string): boolean => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+};
