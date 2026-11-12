@@ -74,3 +74,97 @@ export interface Faq {
   updatedAt: string;
   updatedBy: AdminRef | null;
 }
+
+export const AUDIT_ACTOR_TYPES = ['ADMIN', 'USER', 'SYSTEM'] as const;
+
+/** 계약 "감사 기록" 의 행동 표 그대로(관리자). 조건(`action`)에 넣을 수 있는 값이다. */
+export const AUDIT_ADMIN_ACTIONS = [
+  'ADMIN_LOGIN',
+  'ADMIN_LOGOUT',
+  'ADMIN_PASSWORD_CHANGED',
+  'ADMIN_PASSWORD_RESET',
+  'ADMIN_CREATED',
+  'ADMIN_DEACTIVATED',
+  'ADMIN_REACTIVATED',
+  'ADMIN_BOOTSTRAPPED',
+  'INQUIRY_VIEWED',
+  'INQUIRY_UPDATED',
+  'FAQ_CREATED',
+  'FAQ_UPDATED',
+  'FAQ_PUBLISHED',
+  'FAQ_UNPUBLISHED',
+  'FAQ_DELETED',
+  'FAQ_REORDERED',
+  'APP_CONFIG_UPDATED',
+  'MAINTENANCE_UPDATED',
+] as const;
+
+/** 계약 "감사 기록" 의 행동 표 그대로(앱 사용자). */
+export const AUDIT_USER_ACTIONS = [
+  'USER_LOGIN',
+  'PROFILE_SAVED',
+  'READING_GENERATED',
+  'REPORT_REQUESTED',
+  'SYNASTRY_CREATED',
+  'SYNASTRY_REPORT_REQUESTED',
+  'SYNASTRY_DELETED',
+  'DIRECTION_GENERATED',
+  'SHARE_CREATED',
+  'SHARE_DELETED',
+  'INQUIRY_SUBMITTED',
+  'ACCOUNT_DELETED',
+] as const;
+
+/** label 은 보여 줄 글, ref 는 actorRef 조건에 그대로 넣는 값 */
+export interface AuditActor {
+  ref: string;
+  label: string;
+}
+
+export interface AuditLog {
+  id: string;
+  occurredAt: string;
+  /** 계약의 세 값. 모르는 값이 와도 화면이 깨지지 않게 글자로 받는다. */
+  actorType: string;
+  /** SYSTEM 이면 언제나 null */
+  actor: AuditActor | null;
+  /** 계약의 코드. 서버에 코드가 늘 수 있어 글자로 받고, 모르는 코드는 그대로 보여 준다. */
+  action: string;
+  targetType: string | null;
+  targetId: string | null;
+  outcome: string;
+  /** 코드 값만 담은 작은 객체 */
+  detail: Record<string, unknown> | null;
+}
+
+export interface AuditLogPage {
+  items: AuditLog[];
+  page: number;
+  size: number;
+  total: number;
+}
+
+export const PLATFORMS = ['ios', 'android'] as const;
+export type Platform = (typeof PLATFORMS)[number];
+
+export interface PlatformConfig {
+  minVersion: string | null;
+  storeUrl: string | null;
+  message: string | null;
+  blockNow: boolean;
+  updatedAt: string;
+  updatedBy: AdminRef | null;
+}
+
+export interface Maintenance {
+  active: boolean;
+  message: string | null;
+  updatedAt: string;
+  updatedBy: AdminRef | null;
+}
+
+export interface AppConfig {
+  ios: PlatformConfig;
+  android: PlatformConfig;
+  maintenance: Maintenance;
+}

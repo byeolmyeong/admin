@@ -1,4 +1,20 @@
-import type { Admin, AdminAccount, AdminRef, Counts, Faq, Inquiry, InquiryPage, LoginResult, Stats } from './types';
+import type {
+  Admin,
+  AdminAccount,
+  AdminRef,
+  AppConfig,
+  AuditActor,
+  AuditLog,
+  AuditLogPage,
+  Counts,
+  Faq,
+  Inquiry,
+  InquiryPage,
+  LoginResult,
+  Maintenance,
+  PlatformConfig,
+  Stats,
+} from './types';
 
 /** 서버 응답을 쓰기 전에 모양을 확인한다. 통과하지 못한 응답은 화면에 넘기지 않는다. */
 export type Guard<T> = (v: unknown) => v is T;
@@ -79,3 +95,37 @@ export const isFaq: Guard<Faq> = (v): v is Faq =>
   isBool(v.published) &&
   isStr(v.updatedAt) &&
   isAdminRefOrNull(v, 'updatedBy');
+
+const isAuditActor = (v: unknown): v is AuditActor => isObj(v) && isStr(v.ref) && isStr(v.label);
+
+export const isAuditLog: Guard<AuditLog> = (v): v is AuditLog =>
+  isObj(v) &&
+  isStr(v.id) &&
+  isStr(v.occurredAt) &&
+  isStr(v.actorType) &&
+  'actor' in v &&
+  (v.actor === null || isAuditActor(v.actor)) &&
+  isStr(v.action) &&
+  isStrOrNull(v, 'targetType') &&
+  isStrOrNull(v, 'targetId') &&
+  isStr(v.outcome) &&
+  'detail' in v &&
+  (v.detail === null || isObj(v.detail));
+
+export const isAuditLogPage: Guard<AuditLogPage> = (v): v is AuditLogPage =>
+  isObj(v) && arrayOf(isAuditLog)(v.items) && isCount(v.page) && isCount(v.size) && isCount(v.total);
+
+export const isPlatformConfig: Guard<PlatformConfig> = (v): v is PlatformConfig =>
+  isObj(v) &&
+  isStrOrNull(v, 'minVersion') &&
+  isStrOrNull(v, 'storeUrl') &&
+  isStrOrNull(v, 'message') &&
+  isBool(v.blockNow) &&
+  isStr(v.updatedAt) &&
+  isAdminRefOrNull(v, 'updatedBy');
+
+export const isMaintenance: Guard<Maintenance> = (v): v is Maintenance =>
+  isObj(v) && isBool(v.active) && isStrOrNull(v, 'message') && isStr(v.updatedAt) && isAdminRefOrNull(v, 'updatedBy');
+
+export const isAppConfig: Guard<AppConfig> = (v): v is AppConfig =>
+  isObj(v) && isPlatformConfig(v.ios) && isPlatformConfig(v.android) && isMaintenance(v.maintenance);
