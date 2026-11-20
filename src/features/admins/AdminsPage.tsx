@@ -1,172 +1,284 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useId, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { Empty, LoadError, Loading, Notice } from '../../components/Feedback';
+import { LoadError, Loading } from '../../components/Feedback';
+import { FormDialog } from '../../components/FormDialog';
+import { Icon } from '../../components/icons';
+import { MoreMenu } from '../../components/MoreMenu';
+import { PageHeader } from '../../components/PageHeader';
+import { Pill } from '../../components/Pill';
+import { Table } from '../../components/Table';
+import type { Column } from '../../components/Table';
 import { TextField } from '../../components/TextField';
+import { useToast } from '../../components/Toast';
 import { strings } from '../../content/strings';
 import type { AdminAccount } from '../../lib/api/types';
 import { errorMessage } from '../../lib/errorMessage';
-import { formatDateTime } from '../../lib/text';
+import { formatKst } from '../../lib/text';
 import { useLoad } from '../../lib/useLoad';
-import { isValidLoginId, isValidName, normalizeLoginId, passwordProblem } from '../../lib/validation';
+import { ADMIN_LOGIN_ID_PATTERN, normalizeLoginId, passwordProblem } from '../../lib/validation';
 import { useAuth } from '../auth/AuthContext';
-import { ResetPasswordDialog } from './ResetPasswordDialog';
 
 const t = strings.admins;
-type Message = { tone: 'success' | 'error'; text: string };
 
-function CreateForm({ onCreated }: { onCreated: (made: AdminAccount) => void }) {
+/** 관리자 추가(D16): 아이디만 적으면 서버가 임시 비밀번호를 만든다(결정 043 의 5). */
+function CreateDialog({ onCreated, onCancel }: { onCreated: (made: AdminAccount, temporaryPassword: string) => void; onCancel: () => void }) {
   const { api } = useAuth();
   const [loginId, setLoginId] = useState('');
-  const [name, setName] = useState('');
-  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [errors, setErrors] = useState<{ loginId?: string; name?: string; password?: string; form?: string }>({});
+  const [error, setError] = useState<string | null>(null);
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (busy) return;
+  const submit = async () => {
     const id = normalizeLoginId(loginId);
-    const problem = passwordProblem(password);
-    const found = {
-      loginId: isValidLoginId(id) ? undefined : t.errors.INVALID_LOGIN_ID,
-      name: isValidName(name) ? undefined : t.errors.INVALID_NAME,
-      password: problem === null ? undefined : strings.passwordRule[problem],
-    };
-    setErrors(found);
-    if (found.loginId || found.name || found.password) return;
-
+    if (!ADMIN_LOGIN_ID_PATTERN.test(id)) {
+      setError(t.errors.INVALID_LOGIN_ID);
+      return;
+    }
     setBusy(true);
+    setError(null);
     try {
-      const made = await api.createAdmin({ loginId: id, name: name.trim(), password });
-      setLoginId('');
-      setName('');
-      onCreated(made);
+      const made = await api.createAdmin(id);
+      onCreated(made.admin, made.temporaryPassword);
     } catch (e) {
-      setErrors({ form: errorMessage(e, t.errors) });
-    } finally {
-      // 비밀번호는 요청 뒤 화면 상태에 남기지 않는다.
-      setPassword('');
+      setError(errorMessage(e, t.errors));
       setBusy(false);
     }
   };
 
   return (
-    <form className="card form" aria-label={t.createTitle} onSubmit={submit} noValidate>
-      <h2 className="section-title">{t.createTitle}</h2>
-      <TextField label={t.loginId} value={loginId} onChange={setLoginId} help={t.loginIdHelp} error={errors.loginId} autoComplete="off" />
-      <TextField label={t.name} value={name} onChange={setName} help={t.nameHelp} error={errors.name} autoComplete="off" />
-      <TextField
-        label={t.password}
-        value={password}
-        onChange={setPassword}
-        type="password"
-        help={strings.passwordRule.help}
-        error={errors.password}
-        autoComplete="new-password"
-      />
-      <p className="quiet">{t.passwordHelp}</p>
-      {errors.form && <Notice tone="error">{errors.form}</Notice>}
-      <div className="row row--end">
-        <button type="submit" className="btn btn--primary btn--small" disabled={busy}>
-          {busy ? strings.common.saving : t.createSubmit}
+    <FormDialog title={t.createTitle} submitLabel={t.createSubmit} busy={busy} onSubmit={submit} onCancel={onCancel}>
+      <TextField label={t.loginId} value={loginId} onChange={setLoginId} help={t.loginIdHelp} error={error} autoComplete="off" />
+      <p className="info-box info-box--mute">{t.createNote}</p>
+    </FormDialog>
+  );
+}
+
+/** 임시 비밀번호 한 번 보이기(D17 · D27-1): 복사 버튼, 창을 닫으면 다시 못 본다. */
+function TemporaryDialog({ title, password, onClose }: { title: string; password: string; onClose: () => void }) {
+  const toast = useToast();
+  const fieldId = useId();
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(password);
+      toast.success(t.copied);
+    } catch {
+      toast.error(t.copyFailed);
+    }
+  };
+  return (
+    <div className="dialog-layer">
+      <div className="dialog-layer__backdrop" data-testid="dialog-backdrop" />
+      <div className="dialog card" role="dialog" aria-modal="true" aria-label={title}>
+        <h2 className="dialog__title">{title}</h2>
+        <div className="field">
+          <label className="field__label" htmlFor={fieldId}>
+            {t.temporary}
+          </label>
+          <div className="copy-row">
+            <input id={fieldId} className="input mono selectable" value={password} readOnly />
+            <button type="button" className="btn btn--secondary copy-row__button" onClick={copy}>
+              <Icon name="log" size={14} />
+              {t.copy}
+            </button>
+          </div>
+        </div>
+        <p className="info-box info-box--warn">{t.temporaryWarn}</p>
+        <div className="dialog__actions">
+          <button type="button" className="btn btn--primary" onClick={onClose}>
+            {t.confirm}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** 내 비밀번호 변경(D9 왼쪽 아래 카드) */
+function PasswordCard() {
+  const { api } = useAuth();
+  const toast = useToast();
+  const p = strings.password;
+  const titleId = useId();
+  const [current, setCurrent] = useState('');
+  const [next, setNext] = useState('');
+  const [errors, setErrors] = useState<{ current?: string; next?: string }>({});
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (busy) return;
+    const problem = passwordProblem(next);
+    const found = { current: current === '' ? p.required : undefined, next: problem === null ? undefined : strings.passwordRule[problem] };
+    setErrors(found);
+    if (found.current || found.next) return;
+    setBusy(true);
+    try {
+      await api.changePassword(current, next);
+      toast.success(p.done);
+    } catch (e) {
+      toast.error(errorMessage(e, p.errors));
+    } finally {
+      // 비밀번호는 요청 뒤 화면 상태에 남기지 않는다.
+      setCurrent('');
+      setNext('');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form className="card side-card password-card" aria-labelledby={titleId} onSubmit={submit} noValidate>
+      <h2 className="sec-title" id={titleId}>
+        {p.title}
+      </h2>
+      <TextField label={p.current} value={current} onChange={setCurrent} type="password" error={errors.current} autoComplete="current-password" />
+      <TextField label={p.next} value={next} onChange={setNext} type="password" help={p.help} error={errors.next} autoComplete="new-password" />
+      <div className="side-card__foot side-card__foot--end">
+        <button type="submit" className="btn btn--primary" disabled={busy}>
+          {p.submit}
         </button>
       </div>
     </form>
   );
 }
 
+function Avatar({ loginId }: { loginId: string }) {
+  return (
+    <span className="avatar" aria-hidden="true">
+      {loginId.slice(0, 1).toUpperCase()}
+    </span>
+  );
+}
+
+type Temporary = { title: string; password: string };
+
+/** 관리자(D9): 목록(⋯ 메뉴: 비밀번호 재발급 · 비활성화/활성화), 관리자 추가, 내 비밀번호 변경. */
 export function AdminsPage() {
   const { api, admin: me } = useAuth();
+  const toast = useToast();
   const { state, reload, setData } = useLoad(useCallback(() => api.listAdmins(), [api]));
+  const [creating, setCreating] = useState(false);
   const [asking, setAsking] = useState<AdminAccount | null>(null);
-  const [resetting, setResetting] = useState<AdminAccount | null>(null);
+  const [reissuing, setReissuing] = useState<AdminAccount | null>(null);
+  const [temporary, setTemporary] = useState<Temporary | null>(null);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<Message | null>(null);
   const admins = state.status === 'ready' ? state.data : null;
 
   const setActive = async (target: AdminAccount, active: boolean) => {
-    if (busy || !admins) return;
+    if (!admins || busy) return;
     setBusy(true);
-    setMessage(null);
     try {
       const next = await api.setAdminActive(target.id, active);
       setData(admins.map((item) => (item.id === next.id ? next : item)));
-      setMessage({ tone: 'success', text: active ? t.done.reactivated(next.name) : t.done.deactivated(next.name) });
+      toast.success(active ? t.done.reactivated(next.loginId) : t.done.deactivated(next.loginId));
     } catch (e) {
-      setMessage({ tone: 'error', text: errorMessage(e, t.errors) });
+      toast.error(errorMessage(e, t.errors));
     } finally {
       setBusy(false);
       setAsking(null);
     }
   };
 
+  const reissue = async (target: AdminAccount) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const password = await api.reissuePassword(target.id);
+      setTemporary({ title: t.reissuedTitle(target.loginId), password });
+    } catch (e) {
+      toast.error(errorMessage(e, t.errors));
+    } finally {
+      setBusy(false);
+      setReissuing(null);
+    }
+  };
+
+  const actions = (item: AdminAccount) =>
+    me?.id === item.id ? null : (
+      <MoreMenu
+        label={t.more(item.loginId)}
+        items={[
+          { label: t.reissue, onSelect: () => setReissuing(item) },
+          { label: item.active ? t.deactivate : t.reactivate, danger: item.active, onSelect: () => setAsking(item) },
+        ]}
+      />
+    );
+
+  const who = (item: AdminAccount) => (
+    <span className="who">
+      <Avatar loginId={item.loginId} />
+      <span className="who__id">{item.loginId}</span>
+      {me?.id === item.id && <Pill tone="pri">{t.me}</Pill>}
+    </span>
+  );
+
+  const columns: Column<AdminAccount>[] = [
+    { key: 'loginId', header: t.columns.loginId, render: who },
+    { key: 'role', header: t.columns.role, render: () => t.role },
+    { key: 'state', header: t.columns.state, render: (item) => <Pill tone={item.active ? 'ok' : 'mute'}>{item.active ? t.active : t.inactive}</Pill> },
+    { key: 'lastLogin', header: t.columns.lastLogin, render: (item) => <span className="mono">{item.lastLoginAt ? formatKst(item.lastLoginAt) : t.none}</span> },
+    { key: 'action', header: t.columns.action, render: actions },
+  ];
+
   return (
-    <div className="page">
-      <header className="page__head">
-        <h1 className="page__title">{t.title}</h1>
-      </header>
-      <p className="note">{t.note}</p>
-      {message && <Notice tone={message.tone}>{message.text}</Notice>}
+    <>
+      <PageHeader title={t.title}>
+        <button type="button" className="btn btn--primary" onClick={() => setCreating(true)} disabled={!admins}>
+          {t.create}
+        </button>
+      </PageHeader>
+      <div className="body">
+        {state.status === 'loading' && <Loading />}
+        {state.status === 'error' && <LoadError message={errorMessage(state.error)} onRetry={reload} />}
+        {admins && (
+          <div className="card list-card">
+            <Table
+              label={t.listLabel}
+              columns={columns}
+              rows={admins}
+              rowKey={(item) => item.id}
+              card={(item) => (
+                <span className="admin-card">
+                  <span className="admin-card__text">
+                    {who(item)}
+                    <span className="admin-card__last">{t.lastLoginLine(item.lastLoginAt ? formatKst(item.lastLoginAt) : t.none)}</span>
+                  </span>
+                  <Pill tone={item.active ? 'ok' : 'mute'}>{item.active ? t.active : t.inactive}</Pill>
+                  {actions(item)}
+                </span>
+              )}
+            />
+          </div>
+        )}
+        <div className="cols-2">
+          <PasswordCard />
+        </div>
+      </div>
 
-      {state.status === 'loading' && <Loading />}
-      {state.status === 'error' && <LoadError message={errorMessage(state.error)} onRetry={reload} />}
-      {admins && admins.length === 0 && <Empty>{t.empty}</Empty>}
-      {admins && admins.length > 0 && (
-        <table className="table" aria-label={t.listLabel}>
-          <thead>
-            <tr>
-              <th scope="col">{t.columns.name}</th>
-              <th scope="col">{t.columns.loginId}</th>
-              <th scope="col">{t.columns.state}</th>
-              <th scope="col">{t.columns.createdAt}</th>
-              <th scope="col">{t.columns.action}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {admins.map((item) => (
-              <tr key={item.id}>
-                <td>
-                  {item.name} {me?.id === item.id && <span className="badge badge--plain">{t.me}</span>}
-                </td>
-                <td className="mono">{item.loginId}</td>
-                <td>
-                  <span className={item.active ? 'badge badge--new' : 'badge badge--quiet'}>{item.active ? t.active : t.inactive}</span>
-                </td>
-                <td className="mono table__nowrap">{formatDateTime(item.createdAt)}</td>
-                <td className="table__nowrap">
-                  {/* 자기 자신은 끌 수 없고(CANNOT_DEACTIVATE_SELF) 자기 비밀번호는 "비밀번호 변경" 으로만 바꾼다(USE_OWN_PASSWORD_CHANGE). 내 정보를 받기 전에는 서버가 막는다. */}
-                  {me?.id !== item.id && (
-                    <span className="row">
-                      <button type="button" className="btn btn--secondary btn--small" disabled={busy} onClick={() => setAsking(item)}>
-                        {item.active ? t.deactivate : t.reactivate}
-                      </button>
-                      <button type="button" className="btn btn--secondary btn--small" disabled={busy} onClick={() => setResetting(item)}>
-                        {t.reset.button}
-                      </button>
-                    </span>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      {admins && <p className="note note--quiet">{strings.common.timeZoneNote}</p>}
-
-      {admins && (
-        <CreateForm
-          onCreated={(made) => {
-            setData([...admins, made]);
-            setMessage({ tone: 'success', text: t.done.created(made.name) });
+      {creating && (
+        <CreateDialog
+          onCancel={() => setCreating(false)}
+          onCreated={(made, password) => {
+            if (admins) setData([...admins, made]);
+            setCreating(false);
+            setTemporary({ title: t.createdTitle(made.loginId), password });
           }}
         />
       )}
-
+      {temporary && <TemporaryDialog title={temporary.title} password={temporary.password} onClose={() => setTemporary(null)} />}
+      {reissuing && (
+        <ConfirmDialog
+          title={t.reissueTitle(reissuing.loginId)}
+          body={t.reissueBody(reissuing.loginId)}
+          confirmLabel={t.reissueSubmit}
+          busy={busy}
+          onConfirm={() => void reissue(reissuing)}
+          onCancel={() => setReissuing(null)}
+        />
+      )}
       {asking && (
         <ConfirmDialog
           title={asking.active ? t.deactivateTitle : t.reactivateTitle}
-          body={asking.active ? t.deactivateBody(asking.name) : t.reactivateBody(asking.name)}
+          body={asking.active ? t.deactivateBody(asking.loginId) : t.reactivateBody(asking.loginId)}
           confirmLabel={asking.active ? t.deactivate : t.reactivate}
           danger={asking.active}
           busy={busy}
@@ -174,17 +286,6 @@ export function AdminsPage() {
           onCancel={() => setAsking(null)}
         />
       )}
-
-      {resetting && (
-        <ResetPasswordDialog
-          target={resetting}
-          onDone={() => {
-            setMessage({ tone: 'success', text: t.reset.done(resetting.name) });
-            setResetting(null);
-          }}
-          onCancel={() => setResetting(null)}
-        />
-      )}
-    </div>
+    </>
   );
 }

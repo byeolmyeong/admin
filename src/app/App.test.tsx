@@ -7,7 +7,7 @@ import { callsTo, mockFetch } from '../test/mockFetch';
 import type { Route } from '../test/mockFetch';
 import { renderApp } from '../test/render';
 import { App, AppRoutes } from './App';
-import { sections } from './sections';
+import { sections, visibleSections } from './sections';
 
 const t = strings.shell;
 const one = inquiry();
@@ -25,22 +25,100 @@ const server = (over: Record<string, Route> = {}) =>
     ...over,
   });
 const nav = () => within(screen.getByRole('navigation', { name: t.navLabel }));
+const inquiriesLink = new RegExp(`^${t.nav.inquiries}`);
 const heading = (name: string) => screen.findByRole('heading', { level: 1, name });
 
 describe('화면 틀', () => {
-  it('왼쪽 메뉴: 현황 · 문의 · 자주 묻는 질문 · 관리자 · 감사 로그 · 앱 설정, 그리고 내 이름 · 비밀번호 변경 · 로그아웃', async () => {
+  it('왼쪽 메뉴는 묶음 넷: 현황 / 고객 지원 — 문의 · 사용자 / 소식 · 글 — 푸시 발송 · 자주 묻는 질문 / 운영 설정 — 앱 설정 · 관리자 · 감사 로그', async () => {
     server();
     renderApp(<AppRoutes />);
-    expect(nav().getAllByRole('link').map((a) => a.textContent)).toEqual([t.nav.stats, t.nav.inquiries, t.nav.faqs, t.nav.admins, t.nav.auditLogs, t.nav.appConfig]);
+    const menu = nav();
+    expect(menu.getAllByRole('link').map((a) => a.querySelector('.nav__label')?.textContent)).toEqual([
+      t.nav.stats,
+      t.nav.inquiries,
+      t.nav.users,
+      t.nav.push,
+      t.nav.faqs,
+      t.nav.appConfig,
+      t.nav.admins,
+      t.nav.auditLogs,
+    ]);
+    expect(menu.getAllByText(/./, { selector: '.nav__group' }).map((g) => g.textContent)).toEqual([t.groups.support, t.groups.content, t.groups.operations]);
     const account = within(screen.getByRole('group', { name: t.accountLabel }));
-    expect(await account.findByText(admin.name)).toBeInTheDocument();
-    expect(account.getByRole('link', { name: t.changePassword })).toHaveAttribute('href', '/password');
+    expect(await account.findByText(t.who(admin.loginId))).toBeInTheDocument();
     expect(account.getByRole('button', { name: t.logout })).toBeInTheDocument();
   });
 
-  it('메뉴와 라우트는 구역 목록에서 나온다(새 구역은 sections 에 한 줄)', () => {
-    expect(sections.map((s) => s.to)).toEqual(['/stats', '/inquiries', '/faqs', '/admins', '/audit-logs', '/app-config']);
-    for (const section of sections) expect(section.routes.length).toBeGreaterThan(0);
+  it('메뉴와 라우트는 구역 목록에서 나온다(보드 그대로 — 여덟 구역 모두 보인다)', () => {
+    expect(sections.map((s) => s.to)).toEqual(['/stats', '/inquiries', '/users', '/push', '/faqs', '/app-config', '/admins', '/audit-logs']);
+    expect(visibleSections()).toHaveLength(8);
+    for (const section of visibleSections()) expect(section.routes.length).toBeGreaterThan(0);
+  });
+
+  it('VITE_HIDDEN_SECTIONS=users,push 면 사용자 · 푸시 발송이 메뉴와 라우트에서 빠지고, 그 주소는 현황으로 간다', async () => {
+    vi.stubEnv('VITE_HIDDEN_SECTIONS', 'users,push');
+    expect(visibleSections().map((s) => s.to)).toEqual(['/stats', '/inquiries', '/faqs', '/app-config', '/admins', '/audit-logs']);
+    server();
+    renderApp(<AppRoutes />, { route: '/users' });
+    expect(await heading(strings.stats.title)).toBeInTheDocument();
+    expect(nav().queryByText(t.nav.users)).not.toBeInTheDocument();
+    expect(nav().queryByText(t.nav.push)).not.toBeInTheDocument();
+  });
+
+  it('문의 옆에 답변 대기 수(현황의 새 문의 수)를 보이고, 없으면 숫자를 감춘다', async () => {
+    server({ 'GET /admin/stats': { status: 200, body: stats({ inquiries: { total: 9, byStatus: { NEW: 4, IN_PROGRESS: 2, DONE: 3 } } }) } });
+    const view = renderApp(<AppRoutes />);
+    const link = nav().getByRole('link', { name: new RegExp(`^${t.nav.inquiries}`) });
+    expect(await within(link).findByText(t.waiting(4))).toBeInTheDocument();
+    expect(link.querySelector('.nav__count [aria-hidden="true"]')?.textContent).toBe('4');
+    view.unmount();
+
+    server({ 'GET /admin/stats': { status: 200, body: stats({ inquiries: { total: 3, byStatus: { NEW: 0, IN_PROGRESS: 0, DONE: 3 } } }) } });
+    renderApp(<AppRoutes />);
+    await heading(strings.stats.title);
+    await screen.findAllByText(strings.stats.kpi.waiting);
+    expect(nav().queryByText(t.waiting(0))).not.toBeInTheDocument();
+  });
+
+  it('폰: 위 막대의 메뉴 버튼이 오른쪽 서랍을 열고, 항목을 누르면 그 화면으로 가며 닫힌다', async () => {
+    server();
+    const user = userEvent.setup();
+    renderApp(<AppRoutes />);
+    await heading(strings.stats.title);
+    await user.click(screen.getByRole('button', { name: t.menuOpen }));
+    const drawer = within(screen.getByRole('dialog', { name: t.menuTitle }));
+    expect(drawer.getAllByText(/./, { selector: '.nav__group' })).toHaveLength(3);
+    expect(drawer.getByText(t.who(admin.loginId))).toBeInTheDocument();
+    await user.click(drawer.getByRole('link', { name: t.nav.faqs }));
+    expect(await heading(strings.faqs.title)).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: t.menuTitle })).not.toBeInTheDocument();
+  });
+
+  it('폰 서랍은 닫기 · Esc · 어두운 곳 누르기로 닫힌다', async () => {
+    server();
+    const user = userEvent.setup();
+    renderApp(<AppRoutes />);
+    await heading(strings.stats.title);
+    const open = screen.getByRole('button', { name: t.menuOpen });
+
+    await user.click(open);
+    await user.click(within(screen.getByRole('dialog', { name: t.menuTitle })).getByRole('button', { name: t.menuClose }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await user.click(open);
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await user.click(open);
+    await user.click(screen.getByTestId('drawer-backdrop'));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('폰 위 막대의 문의 바로 가기는 답변 대기 수와 함께 문의 목록으로 간다', async () => {
+    server();
+    renderApp(<AppRoutes />);
+    const shortcut = await screen.findByRole('link', { name: `${t.nav.inquiries} ${t.waiting(3)}` });
+    expect(shortcut).toHaveAttribute('href', '/inquiries');
   });
 
   it('첫 화면은 현황이고, 메뉴로 다른 구역에 간다', async () => {
@@ -49,11 +127,11 @@ describe('화면 틀', () => {
     renderApp(<AppRoutes />);
     expect(await heading(strings.stats.title)).toBeInTheDocument();
     expect(nav().getByRole('link', { name: t.nav.stats })).toHaveAttribute('aria-current', 'page');
-    await user.click(nav().getByRole('link', { name: t.nav.inquiries }));
+    await user.click(nav().getByRole('link', { name: inquiriesLink }));
     expect(await heading(strings.inquiries.title)).toBeInTheDocument();
     await user.click(await screen.findByRole('link', { name: /리포트가 열리지 않아요/ }));
-    expect(await heading(strings.inquiries.detail.title)).toBeInTheDocument();
-    expect(nav().getByRole('link', { name: t.nav.inquiries })).toHaveAttribute('aria-current', 'page');
+    expect(await screen.findByLabelText(strings.inquiries.detail.memo)).toBeInTheDocument();
+    expect(nav().getByRole('link', { name: inquiriesLink })).toHaveAttribute('aria-current', 'page');
     await user.click(nav().getByRole('link', { name: t.nav.faqs }));
     expect(await heading(strings.faqs.title)).toBeInTheDocument();
     await user.click(nav().getByRole('link', { name: t.nav.admins }));
@@ -62,15 +140,14 @@ describe('화면 틀', () => {
     expect(await heading(strings.audit.title)).toBeInTheDocument();
     await user.click(nav().getByRole('link', { name: t.nav.appConfig }));
     expect(await heading(strings.appConfig.title)).toBeInTheDocument();
-    await user.click(screen.getByRole('link', { name: t.changePassword }));
-    expect(await heading(strings.password.title)).toBeInTheDocument();
   });
 
   it('주소로 바로 들어간다: 문의 상세', async () => {
     server();
     renderApp(<AppRoutes />, { route: `/inquiries/${one.id}` });
-    expect(await heading(strings.inquiries.detail.title)).toBeInTheDocument();
+    expect(await heading(strings.inquiries.title)).toBeInTheDocument();
     expect(await screen.findByText('0123456789ab')).toBeInTheDocument();
+    expect(screen.getByLabelText(strings.inquiries.detail.memo)).toBeInTheDocument();
   });
 
   it('문의 상세의 "이 계정의 행동 보기" 는 그 계정으로 거른 감사 로그를 연다', async () => {
@@ -131,7 +208,7 @@ describe('화면 틀', () => {
     expect(await account.findByText(t.meError)).toBeInTheDocument();
     routes['GET /admin/me'] = { status: 200, body: admin };
     await userEvent.click(account.getByRole('button', { name: strings.common.retry }));
-    expect(await account.findByText(admin.name)).toBeInTheDocument();
+    expect(await account.findByText(t.who(admin.loginId))).toBeInTheDocument();
   });
 });
 
@@ -139,23 +216,30 @@ describe('점검 알림', () => {
   const CONFIG = 'GET /admin/app-config';
   const PUT = 'PUT /admin/app-config/maintenance';
   const on = { status: 200, body: appConfig({ maintenance: maintenance({ active: true }) }) };
-  const banner = () => screen.findByText(t.maintenanceBanner);
+  const banner = () => screen.findByText(t.maintenance.title);
+
+  it('띠에는 켠 시각(한국 시각)과 켠 관리자를 적는다(D24)', async () => {
+    server({ [CONFIG]: { status: 200, body: appConfig({ maintenance: maintenance({ active: true, updatedAt: '2026-11-19T17:00:12Z', updatedBy: { id: admin.id, name: 'kim' } }) }) } });
+    renderApp(<AppRoutes />);
+    expect(await screen.findByText(t.maintenance.body)).toBeInTheDocument();
+    expect(screen.getByText(t.maintenance.since('2026.11.20 02:00:12', 'kim'))).toBeInTheDocument();
+  });
 
   it('점검이 켜져 있으면 어느 화면에서나 띠와 앱 설정으로 가는 링크를 보인다', async () => {
     const { calls } = server({ [CONFIG]: on });
     const user = userEvent.setup();
     renderApp(<AppRoutes />);
     expect(await banner()).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: t.maintenanceLink })).toHaveAttribute('href', '/app-config');
-    await user.click(nav().getByRole('link', { name: t.nav.inquiries }));
+    expect(screen.getByRole('link', { name: t.maintenance.link })).toHaveAttribute('href', '/app-config');
+    await user.click(nav().getByRole('link', { name: inquiriesLink }));
     await heading(strings.inquiries.title);
-    expect(screen.getByText(t.maintenanceBanner)).toBeInTheDocument();
-    await user.click(screen.getByRole('link', { name: t.changePassword }));
-    await heading(strings.password.title);
-    expect(screen.getByText(t.maintenanceBanner)).toBeInTheDocument();
-    // 로그인한 뒤 한 번만 받는다(화면을 옮겨도 다시 묻지 않는다)
-    expect(callsTo(calls, CONFIG)).toHaveLength(1);
-    await user.click(screen.getByRole('link', { name: t.maintenanceLink }));
+    expect(screen.getByText(t.maintenance.title)).toBeInTheDocument();
+    await user.click(nav().getByRole('link', { name: t.nav.faqs }));
+    await heading(strings.faqs.title);
+    expect(screen.getByText(t.maintenance.title)).toBeInTheDocument();
+    // 화면 틀은 로그인한 뒤 한 번만 받는다(현황 화면이 머리의 버전 표로 한 번 더 받는다). 화면을 옮겨도 다시 묻지 않는다.
+    expect(callsTo(calls, CONFIG)).toHaveLength(2);
+    await user.click(screen.getByRole('link', { name: t.maintenance.link }));
     expect(await heading(strings.appConfig.title)).toBeInTheDocument();
   });
 
@@ -163,15 +247,15 @@ describe('점검 알림', () => {
     const { calls } = server();
     const view = renderApp(<AppRoutes />);
     await heading(strings.stats.title);
-    await vi.waitFor(() => expect(callsTo(calls, CONFIG)).toHaveLength(1));
-    expect(screen.queryByText(t.maintenanceBanner)).not.toBeInTheDocument();
+    await vi.waitFor(() => expect(callsTo(calls, CONFIG)).toHaveLength(2));
+    expect(screen.queryByText(t.maintenance.title)).not.toBeInTheDocument();
     view.unmount();
 
     const failed = server({ [CONFIG]: { status: 500, body: { error: 'X' } } });
     renderApp(<AppRoutes />);
     await heading(strings.stats.title);
-    await vi.waitFor(() => expect(callsTo(failed.calls, CONFIG)).toHaveLength(1));
-    expect(screen.queryByText(t.maintenanceBanner)).not.toBeInTheDocument();
+    await vi.waitFor(() => expect(callsTo(failed.calls, CONFIG)).toHaveLength(2));
+    expect(screen.queryByText(t.maintenance.title)).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
@@ -187,22 +271,20 @@ describe('점검 알림', () => {
     });
     const user = userEvent.setup();
     renderApp(<AppRoutes />, { route: '/app-config' });
-    const card = within(await screen.findByRole('form', { name: m.title }));
-    expect(screen.queryByText(t.maintenanceBanner)).not.toBeInTheDocument();
+    const card = within(await screen.findByRole('region', { name: m.title }));
+    expect(screen.queryByText(t.maintenance.title)).not.toBeInTheDocument();
     await user.click(card.getByRole('switch', { name: m.active }));
-    await user.click(card.getByRole('button', { name: strings.common.save }));
     await user.click(within(screen.getByRole('alertdialog', { name: m.confirmTitle })).getByRole('button', { name: m.confirmLabel }));
     expect(await banner()).toBeInTheDocument();
     await user.click(nav().getByRole('link', { name: t.nav.stats }));
     await heading(strings.stats.title);
-    expect(screen.getByText(t.maintenanceBanner)).toBeInTheDocument();
+    expect(screen.getByText(t.maintenance.title)).toBeInTheDocument();
 
-    await user.click(screen.getByRole('link', { name: t.maintenanceLink }));
-    const again = within(await screen.findByRole('form', { name: m.title }));
+    await user.click(screen.getByRole('link', { name: t.maintenance.link }));
+    const again = within(await screen.findByRole('region', { name: m.title }));
     await user.click(again.getByRole('switch', { name: m.active }));
-    await user.click(again.getByRole('button', { name: strings.common.save }));
-    expect(await again.findByText(m.savedOff)).toBeInTheDocument();
-    expect(screen.queryByText(t.maintenanceBanner)).not.toBeInTheDocument();
+    expect(await screen.findByText(m.savedOff)).toBeInTheDocument();
+    expect(screen.queryByText(t.maintenance.title)).not.toBeInTheDocument();
   });
 
   it('다른 관리자가 켠 점검은 앱 설정 화면을 열 때 띠에도 반영된다', async () => {

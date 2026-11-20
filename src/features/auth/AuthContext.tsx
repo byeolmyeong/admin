@@ -19,9 +19,18 @@ interface AuthValue {
   adminError: unknown;
   retryAdmin: () => void;
   notice: AuthNotice | null;
-  /** 실패하면 ApiError 를 던진다. 비밀번호는 보관하지 않는다. */
+  /** 실패하면 ApiError 를 던진다. 비밀번호는 보관하지 않는다(임시 비밀번호로 들어온 경우만 아래 예외). */
   login: (loginId: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** 임시 비밀번호로 들어왔다 — 비밀번호를 바꾸기 전엔 다른 화면으로 못 간다(결정 043 의 5 · D22) */
+  mustChangePassword: boolean;
+  /**
+   * 첫 로그인에서 들고 있는 임시 비밀번호(메모리에만, 바꾸거나 로그아웃하면 지운다). 새로 고쳐 사라졌으면 null —
+   * 그때는 화면이 임시 비밀번호를 다시 묻는다.
+   */
+  temporaryPassword: string | null;
+  /** 첫 로그인 비밀번호 변경. 성공하면 임시 비밀번호를 지우고 막음을 푼다. */
+  changeFirstPassword: (current: string, next: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -36,6 +45,9 @@ export function AuthProvider({ baseUrl, children }: { baseUrl: string; children:
   const [adminAttempt, setAdminAttempt] = useState(0);
   const [notice, setNotice] = useState<AuthNotice | null>(null);
   const tokenRef = useRef<string | null>(session?.token ?? null);
+  const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
+  // 서버가 403 PASSWORD_CHANGE_REQUIRED 로 막았다 — 내 정보(mustChangePassword)를 받기 전이어도 첫 로그인 화면으로 간다.
+  const [changeRequired, setChangeRequired] = useState(false);
 
   const end = useCallback((why: AuthNotice) => {
     clearSession();
@@ -43,11 +55,22 @@ export function AuthProvider({ baseUrl, children }: { baseUrl: string; children:
     setSession(null);
     setAdmin(null);
     setAdminError(null);
+    setTemporaryPassword(null);
+    setChangeRequired(false);
     setNotice(why);
   }, []);
 
   const api = useMemo(
-    () => createAdminApi(createClient({ baseUrl, getToken: () => tokenRef.current, onUnauthorized: () => end('expired') })),
+    () =>
+      createAdminApi(
+        createClient({
+          baseUrl,
+          getToken: () => tokenRef.current,
+          onUnauthorized: () => end('expired'),
+          // 서버가 비밀번호 변경을 먼저 요구하면(결정 043 의 5) 화면 틀 대신 첫 로그인 화면으로 간다.
+          onPasswordChangeRequired: () => setChangeRequired(true),
+        }),
+      ),
     [baseUrl, end],
   );
 
@@ -92,7 +115,19 @@ export function AuthProvider({ baseUrl, children }: { baseUrl: string; children:
       tokenRef.current = next.token;
       setAdmin(result.admin);
       setAdminError(null);
+      // 임시 비밀번호로 들어왔으면 바로 다음 화면(D22)의 "현재 비밀번호" 로만 쓰려고 메모리에 잠깐 둔다.
+      setTemporaryPassword(result.admin.mustChangePassword === true ? password : null);
       setSession(next);
+    },
+    [api],
+  );
+
+  const changeFirstPassword = useCallback(
+    async (current: string, next: string) => {
+      await api.changePassword(current, next);
+      setTemporaryPassword(null);
+      setChangeRequired(false);
+      setAdmin((prev) => (prev ? { ...prev, mustChangePassword: false } : prev));
     },
     [api],
   );
@@ -111,9 +146,10 @@ export function AuthProvider({ baseUrl, children }: { baseUrl: string; children:
     setAdminAttempt((n) => n + 1);
   }, []);
 
+  const mustChangePassword = admin?.mustChangePassword === true || changeRequired;
   const value = useMemo<AuthValue>(
-    () => ({ api, signedIn: session !== null, admin, adminError, retryAdmin, notice, login, logout }),
-    [api, session, admin, adminError, retryAdmin, notice, login, logout],
+    () => ({ api, signedIn: session !== null, admin, adminError, retryAdmin, notice, login, logout, mustChangePassword, temporaryPassword, changeFirstPassword }),
+    [api, session, admin, adminError, retryAdmin, notice, login, logout, mustChangePassword, temporaryPassword, changeFirstPassword],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

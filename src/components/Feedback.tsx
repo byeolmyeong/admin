@@ -10,18 +10,13 @@ export function Loading() {
   );
 }
 
-/** 비어 있음 */
-export function Empty({ children }: { children: ReactNode }) {
-  return <p className="state">{children}</p>;
-}
-
 /** 불러오지 못함. onRetry 가 있으면 다시 시도 버튼을 보인다. */
 export function LoadError({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div className="state state--error" role="alert">
       <p>{message}</p>
       {onRetry && (
-        <button type="button" className="btn btn--secondary btn--small" onClick={onRetry}>
+        <button type="button" className="btn btn--secondary" onClick={onRetry}>
           {strings.common.retry}
         </button>
       )}

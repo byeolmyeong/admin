@@ -7,6 +7,7 @@ import {
   isValidStoreUrl,
   isValidVersion,
   normalizeLoginId,
+  hasLetterAndDigit,
   passwordProblem,
 } from './validation';
 
@@ -37,17 +38,22 @@ describe('name', () => {
 
 describe('passwordProblem', () => {
   it('10자보다 짧으면 TOO_SHORT', () => {
-    expect(passwordProblem('123456789')).toBe('TOO_SHORT');
-    expect(passwordProblem('1234567890')).toBeNull();
+    expect(passwordProblem('a23456789')).toBe('TOO_SHORT');
+    expect(passwordProblem('a234567890')).toBeNull();
   });
   it('UTF-8 로 72바이트를 넘으면 TOO_LONG', () => {
-    expect(passwordProblem('a'.repeat(72))).toBeNull();
-    expect(passwordProblem('a'.repeat(73))).toBe('TOO_LONG');
-    expect(passwordProblem('가'.repeat(24))).toBeNull();
-    expect(passwordProblem('가'.repeat(25))).toBe('TOO_LONG');
+    expect(passwordProblem(`1${'a'.repeat(71)}`)).toBeNull();
+    expect(passwordProblem(`1${'a'.repeat(72)}`)).toBe('TOO_LONG');
+    expect(passwordProblem(`a1${'가'.repeat(23)}`)).toBeNull();
+    expect(passwordProblem(`a1${'가'.repeat(24)}`)).toBe('TOO_LONG');
+  });
+  it('영문과 숫자를 함께 써야 한다(보드 D9 · D22)', () => {
+    expect(passwordProblem('1234567890')).toBe('NO_MIX');
+    expect(passwordProblem('abcdefghij')).toBe('NO_MIX');
+    expect(hasLetterAndDigit('abc123')).toBe(true);
   });
   it('앞뒤 공백을 떼지 않고 센다', () => {
-    expect(passwordProblem(' 12345678 ')).toBeNull();
+    expect(passwordProblem(' a2345678 ')).toBeNull();
   });
 });
 

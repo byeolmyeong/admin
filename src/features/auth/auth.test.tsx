@@ -64,6 +64,19 @@ describe('로그인', () => {
     expect(loadSession()).toBeNull();
   });
 
+  it('틀리면 비밀번호 칸 아래 빨간 한 줄로 알린다(D23 — 위쪽 상자 아님, 잠금 화면 없음)', async () => {
+    mockFetch({ 'POST /admin/auth/login': { status: 401, body: { error: 'INVALID_CREDENTIALS' } } });
+    renderApp(tree, { route: '/login', signedIn: false });
+    await fill('owner', 'wrong-password');
+    const password = screen.getByLabelText(strings.login.password);
+    await screen.findByRole('alert');
+    expect(password).toHaveAttribute('aria-invalid', 'true');
+    expect(password).toHaveAccessibleDescription(strings.login.errors.INVALID_CREDENTIALS);
+    expect(screen.getByText(strings.login.caption)).toBeInTheDocument();
+    // 다시 보낼 수 있다(잠그지 않는다)
+    expect(screen.getByRole('button', { name: strings.login.submit })).toBeEnabled();
+  });
+
   it('RATE_LIMITED 와 연결 실패를 구분해 안내한다', async () => {
     const { routes } = mockFetch({ 'POST /admin/auth/login': { status: 429, body: { error: 'RATE_LIMITED' } } });
     renderApp(tree, { route: '/login', signedIn: false });

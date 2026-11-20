@@ -1,136 +1,149 @@
-import { useCallback, useId } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { Empty, LoadError, Loading } from '../../components/Feedback';
+import { useCallback } from 'react';
+import { LoadError, Loading } from '../../components/Feedback';
+import { EmptyState } from '../../components/EmptyState';
+import { PageHeader } from '../../components/PageHeader';
+import { Pager } from '../../components/Pager';
+import { Pill } from '../../components/Pill';
+import { SearchField } from '../../components/SearchField';
+import { Segmented } from '../../components/Segmented';
+import { Select } from '../../components/Select';
+import { Table } from '../../components/Table';
+import type { Column } from '../../components/Table';
+import { useIsPhone } from '../../components/overlay';
 import { strings } from '../../content/strings';
-import { INQUIRY_CATEGORIES, INQUIRY_STATUSES } from '../../lib/api/types';
-import type { InquiryPage } from '../../lib/api/types';
+import { ApiError } from '../../lib/api/client';
+import { INQUIRY_CATEGORIES, INQUIRY_CATEGORIES_V2, INQUIRY_STATUSES } from '../../lib/api/types';
+import type { Inquiry } from '../../lib/api/types';
 import { errorMessage } from '../../lib/errorMessage';
-import { formatDateTime, oneLine } from '../../lib/text';
+import { formatKst, oneLine } from '../../lib/text';
+import { useListParams } from '../../lib/useListParams';
 import { useLoad } from '../../lib/useLoad';
 import { useAuth } from '../auth/AuthContext';
-import { categoryLabel, statusLabel } from './labels';
+import { CATEGORY_ORDER, SEGMENT_STATUS, categoryLabel, segmentOf, statusLabel, statusTone } from './labels';
+import type { Segment } from './labels';
+import { useWaitingCount } from './WaitingCount';
 
 const t = strings.inquiries;
-/** 한 쪽의 개수(계약: 1~100, 기본 20) */
-const PAGE_SIZE = 20;
 /** 목록 한 줄 요약의 길이 */
-const EXCERPT = 80;
+const EXCERPT = 60;
 
-const oneOf = (value: string | null, allowed: readonly string[]): string => (value !== null && allowed.includes(value) ? value : '');
-const pageOf = (value: string | null): number => (value !== null && /^\d{1,6}$/.test(value) ? Number(value) : 0);
+const oneOf = (value: string, allowed: readonly string[]): string => (allowed.includes(value) ? value : '');
+const CATEGORIES: readonly string[] = [...INQUIRY_CATEGORIES_V2, ...INQUIRY_CATEGORIES];
+const DAY = 86_400_000;
+/** 작성자: 닉네임(S⑧ 의 owner), 없으면 계정 코드 */
+const ownerName = (i: Inquiry): string => i.owner?.nickname ?? i.ownerRef;
 
-function Rows({ data }: { data: InquiryPage }) {
-  const [params] = useSearchParams();
+const columns: Column<Inquiry>[] = [
+  { key: 'category', header: t.columns.category, render: (i) => <Pill tone="mute">{categoryLabel(i.category)}</Pill> },
+  { key: 'body', header: t.columns.body, render: (i) => oneLine(i.body, EXCERPT) },
+  { key: 'owner', header: t.columns.owner, render: (i) => (i.owner?.nickname ? i.owner.nickname : <span className="mono">{i.ownerRef}</span>) },
+  { key: 'createdAt', header: t.columns.createdAt, render: (i) => <span className="mono">{formatKst(i.createdAt)}</span>, className: 'nowrap' },
+  { key: 'status', header: t.columns.status, render: (i) => <Pill tone={statusTone(i.status)}>{statusLabel(i.status)}</Pill> },
+  { key: 'answerer', header: t.columns.answerer, render: (i) => (i.answeredBy ?? i.handledBy)?.name ?? <span className="muted">{t.none}</span> },
+];
+
+function InquiryCard({ item }: { item: Inquiry }) {
   return (
-    <table className="table" aria-label={t.listLabel}>
-      <thead>
-        <tr>
-          <th scope="col">{t.columns.category}</th>
-          <th scope="col">{t.columns.status}</th>
-          <th scope="col">{t.columns.excerpt}</th>
-          <th scope="col">{t.columns.ownerRef}</th>
-          <th scope="col">{t.columns.createdAt}</th>
-          <th scope="col">{t.columns.handler}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {data.items.map((item) => (
-          <tr key={item.id}>
-            <td className="table__nowrap">{categoryLabel(item.category)}</td>
-            <td className="table__nowrap">
-              <span className={`badge badge--${item.status === 'NEW' ? 'new' : item.status === 'DONE' ? 'quiet' : 'plain'}`}>
-                {statusLabel(item.status)}
-              </span>
-            </td>
-            <td className="table__main">
-              {/* 돌아올 때 같은 조건의 목록으로 오도록 지금의 조건을 들려 보낸다 */}
-              <Link to={`/inquiries/${encodeURIComponent(item.id)}`} state={{ listSearch: params.toString() }}>
-                {oneLine(item.body, EXCERPT)}
-              </Link>
-            </td>
-            <td className="table__nowrap mono">{item.ownerRef}</td>
-            <td className="table__nowrap mono">{formatDateTime(item.createdAt)}</td>
-            <td className="table__nowrap">{item.handledBy ? item.handledBy.name : <span className="quiet">{t.notHandled}</span>}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <>
+      <span className="row-card__meta">
+        <Pill tone="mute">{categoryLabel(item.category)}</Pill>
+        <Pill tone={statusTone(item.status)}>{statusLabel(item.status)}</Pill>
+        <span className="mono">{formatKst(item.createdAt)}</span>
+      </span>
+      <span className="row-card__title">{oneLine(item.body, EXCERPT)}</span>
+      <span>{ownerName(item)}</span>
+    </>
   );
 }
 
+/** 문의 목록(D2 · D25): 답변 대기 · 답변 완료 · 전체 칸, 종류, 표(폰은 카드), 페이지 번호. */
 export function InquiryListPage() {
   const { api } = useAuth();
-  const [params, setParams] = useSearchParams();
-  const status = oneOf(params.get('status'), INQUIRY_STATUSES);
-  const category = oneOf(params.get('category'), INQUIRY_CATEGORIES);
-  const page = pageOf(params.get('page'));
-  const statusId = useId();
-  const categoryId = useId();
+  const { count, oldestWaitingAt } = useWaitingCount();
+  const phone = useIsPhone();
+  const list = useListParams();
+  const status = oneOf(list.get('status'), INQUIRY_STATUSES);
+  const category = oneOf(list.get('category'), CATEGORIES);
+  const q = list.get('q').trim();
+  const { page, size } = list;
+  const segment = segmentOf(status);
 
   const { state, reload } = useLoad(
-    useCallback(() => api.listInquiries({ status, category, page, size: PAGE_SIZE }), [api, status, category, page]),
+    useCallback(async () => {
+      try {
+        return await api.listInquiries({ status, category, q, page, size });
+      } catch (e) {
+        // 답변 완료(ANSWERED)를 아직 모르는 서버(S⑧ 전)면 옛 끝남(DONE)으로 다시 묻는다.
+        if (status === 'ANSWERED' && e instanceof ApiError && e.code === 'INVALID_STATUS') return api.listInquiries({ status: 'DONE', category, q, page, size });
+        throw e;
+      }
+    }, [api, status, category, q, page, size]),
   );
 
-  const go = (next: { status: string; category: string; page: number }) => {
-    const search = new URLSearchParams();
-    if (next.status) search.set('status', next.status);
-    if (next.category) search.set('category', next.category);
-    if (next.page > 0) search.set('page', String(next.page));
-    setParams(search);
-  };
-
+  const segmentOptions = (Object.keys(SEGMENT_STATUS) as Segment[]).map((key) => ({
+    value: key,
+    label: key === 'waiting' ? t.segments.waiting(count) : t.segments[key],
+  }));
+  const categoryOptions = CATEGORY_ORDER.map((value) => ({ value, label: categoryLabel(value) }));
   const data = state.status === 'ready' ? state.data : null;
-  const pages = data ? Math.max(1, Math.ceil(data.total / data.size)) : 1;
+  const empty = (() => {
+    if (!data || data.items.length > 0) return null;
+    if (data.total > 0) return <EmptyState title={t.empty.page.title} body={t.empty.page.body} />;
+    if (category || q) return <EmptyState title={t.empty.filtered.title} body={t.empty.filtered.body} onReset={list.reset} />;
+    const words = t.empty[segment ?? 'all'];
+    return <EmptyState title={words.title} body={words.body} />;
+  })();
 
   return (
-    <div className="page">
-      <header className="page__head">
-        <div>
-          <h1 className="page__title">{t.title}</h1>
-          {data && <p className="page__sub">{t.total(data.total)}</p>}
-        </div>
-        <div className="filters">
-          <div className="filter">
-            <label htmlFor={statusId}>{t.filterStatus}</label>
-            <select id={statusId} className="select" value={status} onChange={(e) => go({ status: e.target.value, category, page: 0 })}>
-              <option value="">{t.all}</option>
-              {INQUIRY_STATUSES.map((value) => (
-                <option key={value} value={value}>
-                  {statusLabel(value)}
-                </option>
+    <>
+      <PageHeader title={t.title}>
+        {oldestWaitingAt && <span>{t.oldest(Math.max(0, Math.floor((Date.now() - Date.parse(oldestWaitingAt)) / DAY)))}</span>}
+      </PageHeader>
+      <div className="body">
+        <div className="tools">
+          <Segmented label={t.segmentsLabel} value={segment ?? 'all'} options={segmentOptions} onChange={(s) => list.set({ status: SEGMENT_STATUS[s] })} />
+          {phone ? (
+            <span className="tools__row">
+              <Select allLabel={t.allCategories} value={category} options={categoryOptions} onChange={(v) => list.set({ category: v })} />
+              <SearchField label={t.searchLabel} placeholder={t.searchPlaceholder} value={q} onCommit={(v) => list.set({ q: v.trim() })} />
+            </span>
+          ) : (
+            <span className="chips" role="group" aria-label={t.categoryLabel}>
+              {[{ value: '', label: t.allCategories }, ...categoryOptions].map((o) => (
+                <button key={o.value || 'all'} type="button" className="chip" aria-pressed={category === o.value} onClick={() => list.set({ category: o.value })}>
+                  {o.label}
+                </button>
               ))}
-            </select>
-          </div>
-          <div className="filter">
-            <label htmlFor={categoryId}>{t.filterCategory}</label>
-            <select id={categoryId} className="select" value={category} onChange={(e) => go({ status, category: e.target.value, page: 0 })}>
-              <option value="">{t.all}</option>
-              {INQUIRY_CATEGORIES.map((value) => (
-                <option key={value} value={value}>
-                  {categoryLabel(value)}
-                </option>
-              ))}
-            </select>
-          </div>
+            </span>
+          )}
+          {!phone && (
+            <span className="tools__end">
+              <SearchField label={t.searchLabel} placeholder={t.searchPlaceholder} value={q} onCommit={(v) => list.set({ q: v.trim() })} />
+            </span>
+          )}
         </div>
-      </header>
 
-      {state.status === 'loading' && <Loading />}
-      {state.status === 'error' && <LoadError message={errorMessage(state.error, t.errors)} onRetry={reload} />}
-      {data && data.items.length === 0 && <Empty>{data.total === 0 ? t.empty : t.emptyPage}</Empty>}
-      {data && data.items.length > 0 && <Rows data={data} />}
-      {data && data.total > 0 && (
-        <nav className="pager" aria-label={t.pagerLabel}>
-          <button type="button" className="btn btn--secondary btn--small" disabled={data.page <= 0} onClick={() => go({ status, category, page: data.page - 1 })}>
-            {t.prev}
-          </button>
-          <span className="mono">{t.position(data.page + 1, pages)}</span>
-          <button type="button" className="btn btn--secondary btn--small" disabled={data.page + 1 >= pages} onClick={() => go({ status, category, page: data.page + 1 })}>
-            {t.next}
-          </button>
-        </nav>
-      )}
-      {data && <p className="note note--quiet">{strings.common.timeZoneNote}</p>}
-    </div>
+        {state.status === 'loading' && <Loading />}
+        {state.status === 'error' && <LoadError message={errorMessage(state.error, t.errors)} onRetry={reload} />}
+        {empty}
+        {data && (data.items.length > 0 || data.total > 0) && (
+          <div className={phone ? undefined : 'card list-card'}>
+            {data.items.length > 0 && (
+              <Table
+                label={t.listLabel}
+                columns={columns}
+                rows={data.items}
+                rowKey={(i) => i.id}
+                linkColumn="body"
+                // 돌아올 때 같은 조건의 목록으로 오도록 지금의 조건을 들려 보낸다
+                rowLink={(i) => ({ to: `/inquiries/${encodeURIComponent(i.id)}`, state: { listSearch: list.search } })}
+                card={(i) => <InquiryCard item={i} />}
+              />
+            )}
+            <Pager total={data.total} page={page} size={size} onPage={list.setPage} onSize={list.setSize} />
+          </div>
+        )}
+      </div>
+    </>
   );
 }
