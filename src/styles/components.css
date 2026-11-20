@@ -257,6 +257,7 @@
 
 .seg__item {
   height: 30px;
+  white-space: nowrap;
   padding: 0 var(--space-sm);
   border: 0;
   border-radius: var(--radius-small);
@@ -1002,14 +1003,18 @@
 
 .kpi__label {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  font: var(--type-table);
-  font-weight: 500;
+  gap: var(--space-xs);
+  font: 500 13px/18px var(--font-family);
   color: var(--color-gray);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .kpi__label .icon {
+  flex-shrink: 0;
+  margin-top: 1px;
   color: var(--color-muted);
 }
 
@@ -1041,16 +1046,209 @@
   }
 }
 
+/* 640 아래: 수치 카드는 한 열 · 한 줄(왼쪽 이름표 · 설명, 오른쪽 숫자) — 시안 D1 폰(캔버스 v183) */
 @media (max-width: 639px) {
   .kpis {
-    gap: 10px;
+    grid-template-columns: 1fr;
+    gap: var(--space-xs);
   }
 
   .kpi {
-    padding: 14px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: 'l v' 's v';
+    align-items: center;
+    column-gap: var(--space-sm);
+    row-gap: 2px;
+    padding: 14px var(--space-md);
+  }
+
+  .kpi__label {
+    grid-area: l;
+  }
+
+  .kpi__label .icon {
+    display: none;
+  }
+
+  .kpi__sub {
+    grid-area: s;
   }
 
   .kpi__value {
+    grid-area: v;
     font: var(--type-number-small);
+    text-align: right;
+    white-space: nowrap;
+  }
+}
+
+/* ── 현황 v2(D1): 실패 수 · 접속 차트 · 두 칸 ─────────────── */
+.kpi__sub--bad {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.grid-dash {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  align-items: start;
+  gap: var(--space-md);
+}
+
+.active {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: 18px 22px;
+}
+
+.active__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.active__nums {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+}
+
+.active__nums span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.active__nums small {
+  font: var(--type-small);
+  color: var(--color-hint);
+}
+
+.active__nums b {
+  font: 600 24px/32px var(--font-family);
+  letter-spacing: -0.02em;
+}
+
+.active__nums b.is-up {
+  color: var(--color-good);
+}
+
+.active__nums b.is-down {
+  color: var(--color-danger);
+}
+
+.active__empty {
+  padding: var(--space-xl) 0;
+  font: var(--type-table);
+  color: var(--color-hint);
+  text-align: center;
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 170px;
+}
+
+.bars--many {
+  gap: 3px;
+}
+
+.bars__col {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  height: 100%;
+  min-width: 0;
+}
+
+.bars__value {
+  font: 600 11px/14px var(--font-family);
+  color: var(--color-gray);
+  font-variant-numeric: tabular-nums;
+}
+
+.bars__bar {
+  width: 100%;
+  max-height: 120px;
+  border-radius: 6px 6px 2px 2px;
+  background: var(--color-primary-light);
+}
+
+.bars__col.is-last .bars__bar {
+  background: var(--color-primary);
+}
+
+.bars__label {
+  height: 14px;
+  font: 400 11px/14px var(--font-family);
+  color: var(--color-hint);
+  white-space: nowrap;
+}
+
+@media (max-width: 1023px) {
+  .grid-dash {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 639px) {
+  .bars {
+    gap: 6px;
+  }
+
+  /* 칸은 제목 아래 한 줄을 꽉 채우고 세 칸이 같은 폭 */
+  .active__head .seg {
+    width: 100%;
+  }
+
+  /* 답변 대기 문의: 표 대신 두 줄(종류 · 접수 일시 / 내용 한 줄) */
+  .waiting .tbl,
+  .waiting .tbl tbody {
+    display: block;
+  }
+
+  .waiting .tbl tr {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas: 'k d' 't t';
+    gap: 6px 10px;
+    padding: var(--space-sm) 14px;
+    border-top: var(--line) solid var(--color-hair);
+  }
+
+  .waiting .tbl tr:first-child {
+    border-top: 0;
+  }
+
+  .waiting .tbl td {
+    padding: 0;
+    border: 0;
+    text-align: left;
+  }
+
+  .waiting .tbl td:nth-child(1) {
+    grid-area: k;
+  }
+
+  .waiting .tbl td:nth-child(2) {
+    grid-area: t;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .waiting .tbl td:nth-child(3) {
+    grid-area: d;
+    font-size: 12px;
+    text-align: right;
   }
 }

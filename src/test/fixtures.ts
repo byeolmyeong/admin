@@ -88,3 +88,24 @@ export const appConfig = (over: Partial<AppConfig> = {}): AppConfig => ({
   maintenance: maintenance(),
   ...over,
 });
+
+/** 현황 v2(결정 043 의 3) 필드까지 채운 값 */
+export const statsV2 = (): Stats => ({
+  ...stats(),
+  reports: { total: 45, byStatus: { DONE: 40, WRITING: 3, FAILED: 2 }, me: 214, timing: 172, generating: 4 },
+  inquiries: { total: 6, byStatus: { NEW: 3, IN_PROGRESS: 2, DONE: 1 }, waiting: 5, oldestWaitingAt: '2026-11-10T04:05:06Z' },
+  users: { total: 1284, joinedToday: 32, joined7d: 214 },
+  nicknames: { total: 1201 },
+  todaySky: { today: 412, onDemand: 132, prebuilt: 280 },
+  failuresToday: { nickname: 1, report: 2 },
+  pushToday: { sent: 1920, failed: 12 },
+  consents: { pushRate: 0.62, marketingRate: 0.18, adReachable: 211 },
+});
+
+export const activeStats = (range = 'week') => ({
+  range,
+  points: ['월', '화', '수', '목', '금', '토', '오늘'].map((label, i) => ({ label, value: [132, 141, 128, 156, 149, 171, 158][i] ?? 0 })),
+  total: 1020,
+  average: 148,
+  previousTotal: 911,
+});

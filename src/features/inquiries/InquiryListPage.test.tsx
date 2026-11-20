@@ -3,11 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { strings } from '../../content/strings';
-import { admin, inquiry } from '../../test/fixtures';
+import { admin, inquiry, stats } from '../../test/fixtures';
 import { callsTo, mockFetch } from '../../test/mockFetch';
 import type { MockRequest } from '../../test/mockFetch';
 import { renderApp } from '../../test/render';
 import { InquiryListPage } from './InquiryListPage';
+import { WaitingCountProvider } from './WaitingCount';
 
 const t = strings.inquiries;
 const me = { status: 200, body: admin };
@@ -32,12 +33,19 @@ const segments = () => within(screen.getByRole('group', { name: t.segmentsLabel 
 afterEach(() => vi.unstubAllGlobals());
 
 describe('문의 목록(D2)', () => {
-  it('표: 종류 · 내용 · 작성자 · 접수 일시 · 상태 · 처리자, 날짜는 2026.11.12 13:05:06', async () => {
+  it('표: 종류 · 내용 · 작성자 · 접수 일시 · 상태 · 답변자, 날짜는 2026.11.12 13:05:06', async () => {
     const { calls } = mockFetch({
       'GET /admin/me': me,
       'GET /admin/inquiries': page([
         inquiry(),
-        inquiry({ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', category: 'ACCOUNT', status: 'DONE', handledBy: { id: admin.id, name: '김관리' }, handledAt: '2026-11-12T05:00:00Z' }),
+        inquiry({
+          id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          category: 'ACCOUNT',
+          status: 'ANSWERED',
+          answeredBy: { id: admin.id, name: '김관리' },
+          answeredAt: '2026-11-12T05:00:00Z',
+          owner: { userId: 'u1', nickname: '새벽별', provider: 'KAKAO', platform: 'ios', appVersion: '1.0.2', joinedAt: '2026-11-08T05:20:05Z' },
+        }),
       ]),
     });
     renderApp(tree, { route: '/inquiries' });
@@ -48,7 +56,7 @@ describe('문의 목록(D2)', () => {
       t.columns.owner,
       t.columns.createdAt,
       t.columns.status,
-      t.columns.handler,
+      t.columns.answerer,
     ]);
     const [, first, second] = within(table).getAllByRole('row').map((r) => within(r));
     expect(first?.getByText(t.categories.BUG)).toBeInTheDocument();
@@ -57,8 +65,9 @@ describe('문의 목록(D2)', () => {
     expect(first?.getByText('2026.11.12 13:05:06')).toBeInTheDocument();
     expect(first?.getByText('0123456789ab')).toBeInTheDocument();
     expect(first?.getByText(t.none)).toBeInTheDocument();
-    expect(second?.getByText(strings.inquiryStatus.DONE)).toBeInTheDocument();
+    expect(second?.getByText(strings.inquiryStatus.ANSWERED)).toBeInTheDocument();
     expect(second?.getByText('김관리')).toBeInTheDocument();
+    expect(second?.getByText('새벽별')).toBeInTheDocument();
     expect(listCalls(calls)[0]?.query.toString()).toBe('page=0&size=20');
     expect(screen.getByText(strings.pager.range(2, 1, 2))).toBeInTheDocument();
   });
@@ -71,7 +80,7 @@ describe('문의 목록(D2)', () => {
     expect(screen.getByTestId('where')).toHaveTextContent(`/inquiries/${inquiry().id}`);
   });
 
-  it('칸: 답변 대기(새 문의) · 답변 완료 · 전체 — 바꾸면 그 조건으로 1쪽부터', async () => {
+  it('칸: 답변 대기 · 답변 완료(ANSWERED) · 전체 — 바꾸면 그 조건으로 1쪽부터', async () => {
     const { calls } = mockFetch({ 'GET /admin/me': me, 'GET /admin/inquiries': page([inquiry()], 45) });
     const user = userEvent.setup();
     renderApp(tree, { route: '/inquiries?page=2' });
@@ -80,8 +89,45 @@ describe('문의 목록(D2)', () => {
     await user.click(segments().getByRole('button', { name: t.segments.waiting(null) }));
     expect(listCalls(calls).at(-1)?.query.toString()).toBe('status=NEW&page=0&size=20');
     await user.click(segments().getByRole('button', { name: t.segments.answered }));
-    expect(listCalls(calls).at(-1)?.query.toString()).toBe('status=DONE&page=0&size=20');
-    expect(screen.getByTestId('where')).toHaveTextContent('/inquiries?status=DONE');
+    expect(listCalls(calls).at(-1)?.query.toString()).toBe('status=ANSWERED&page=0&size=20');
+    expect(screen.getByTestId('where')).toHaveTextContent('/inquiries?status=ANSWERED');
+  });
+
+  it('서버가 ANSWERED 를 아직 모르면(INVALID_STATUS) 옛 DONE 으로 다시 묻는다', async () => {
+    const { calls } = mockFetch({
+      'GET /admin/me': me,
+      'GET /admin/inquiries': (req) => (req.query.get('status') === 'ANSWERED' ? { status: 400, body: { error: 'INVALID_STATUS' } } : page()),
+    });
+    renderApp(tree, { route: '/inquiries?status=ANSWERED' });
+    await screen.findByRole('table');
+    expect(listCalls(calls).map((c) => c.query.get('status'))).toEqual(['ANSWERED', 'DONE']);
+  });
+
+  it('찾기: 입력을 멈추고 0.3초 뒤 q 로, 1쪽부터', async () => {
+    const { calls } = mockFetch({ 'GET /admin/me': me, 'GET /admin/inquiries': page() });
+    const user = userEvent.setup();
+    renderApp(tree, { route: '/inquiries?page=1' });
+    await screen.findByRole('table');
+    await user.type(screen.getByRole('searchbox', { name: t.searchLabel }), '알림');
+    await vi.waitFor(() => expect(listCalls(calls).at(-1)?.query.toString()).toBe('q=%EC%95%8C%EB%A6%BC&page=0&size=20'));
+  });
+
+  it('머리 오른쪽: 최장 대기 N일(현황의 oldestWaitingAt)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-20T03:00:00Z'));
+    mockFetch({
+      'GET /admin/me': me,
+      'GET /admin/inquiries': page(),
+      'GET /admin/stats': { status: 200, body: { ...stats(), inquiries: { total: 1, byStatus: { NEW: 1, IN_PROGRESS: 0, DONE: 0 }, oldestWaitingAt: '2026-11-18T03:00:00Z' } } },
+    });
+    renderApp(
+      <WaitingCountProvider>
+        <InquiryListPage />
+      </WaitingCountProvider>,
+      { route: '/inquiries' },
+    );
+    expect(await screen.findByText(t.oldest(2))).toBeInTheDocument();
+    vi.useRealTimers();
   });
 
   it('종류 칩: 고르면 그 종류만, 1쪽부터', async () => {
@@ -91,6 +137,7 @@ describe('문의 목록(D2)', () => {
     await screen.findByRole('table');
     const chips = within(screen.getByRole('group', { name: t.categoryLabel }));
     expect(chips.getByRole('button', { name: t.allCategories })).toHaveAttribute('aria-pressed', 'true');
+    expect(chips.getAllByRole('button').map((b) => b.textContent)).toEqual([t.allCategories, t.categories.BUG, t.categories.IDEA, t.categories.ACCOUNT, t.categories.ETC]);
     await user.click(chips.getByRole('button', { name: t.categories.BUG }));
     expect(listCalls(calls).at(-1)?.query.toString()).toBe('category=BUG&page=0&size=20');
     expect(chips.getByRole('button', { name: t.categories.BUG })).toHaveAttribute('aria-pressed', 'true');
@@ -139,7 +186,7 @@ describe('문의 목록(D2)', () => {
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
-  it('종류로 거른 결과가 비면 "검색 · 필터 초기화"', async () => {
+  it('종류 · 찾기로 거른 결과가 비면 "검색 · 필터 초기화"', async () => {
     const { calls } = mockFetch({ 'GET /admin/me': me, 'GET /admin/inquiries': page([], 0) });
     const user = userEvent.setup();
     renderApp(tree, { route: '/inquiries?status=NEW&category=BUG' });

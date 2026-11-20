@@ -3,8 +3,9 @@ import { Notice } from '../components/Feedback';
 import { UiProvider } from '../components/UiProvider';
 import { strings } from '../content/strings';
 import { AuthProvider } from '../features/auth/AuthContext';
+import { FirstPasswordPage } from '../features/auth/FirstPasswordPage';
 import { LoginPage } from '../features/auth/LoginPage';
-import { RequireAuth } from '../features/auth/RequireAuth';
+import { FIRST_PASSWORD_PATH, RequireAuth } from '../features/auth/RequireAuth';
 import { apiBaseUrl } from '../lib/config';
 import { AppShell } from './AppShell';
 import { visibleSections } from './sections';
@@ -17,6 +18,7 @@ export function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route element={<RequireAuth />}>
+        <Route path={FIRST_PASSWORD_PATH} element={<FirstPasswordPage />} />
         <Route element={<AppShell />}>
           {shown.flatMap((section) => section.routes.map((route) => <Route key={route.path} path={route.path} element={route.element} />))}
           {/* 내 비밀번호 변경은 관리자 화면의 카드로 옮겼다(D9). 옛 주소는 그리로 보낸다. */}

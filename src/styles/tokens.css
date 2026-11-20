@@ -39,6 +39,17 @@
   --shadow-toast: 0 10px 30px rgba(0, 0, 0, 0.25);
   --shadow-segment: 0 1px 2px rgba(0, 0, 0, 0.06);
 
+  /* 앱 화면 미리보기(앱 결정 033 의 어두운 바탕) — 문의 답변 · 푸시 기기 미리보기 */
+  --color-app-bg: #0d0e12;
+  --color-app-card: #16171d;
+  --color-app-line: #2a2b33;
+  --color-app-ink: #f2f3f7;
+  --color-app-hint: #a9abb7;
+  --color-app-accent-bg: rgba(71, 82, 255, 0.12);
+  --color-app-accent-line: rgba(154, 163, 255, 0.28);
+  --color-app-accent-hint: #c9ceff;
+  --gradient-app-device: linear-gradient(160deg, #2a2f8f, #0d0e12);
+
   /* 글자: 크기 / 줄높이 / 굵기 */
   --font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
   --letter-spacing: -0.01em;

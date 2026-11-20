@@ -4,11 +4,15 @@ export interface Admin {
   id: string;
   loginId: string;
   name: string;
+  /** 임시 비밀번호로 들어왔으면 true(결정 043 의 5) — 비밀번호를 바꾸기 전엔 다른 화면으로 못 간다 */
+  mustChangePassword?: boolean;
 }
 
 export interface AdminAccount extends Admin {
   active: boolean;
   createdAt: string;
+  /** 마지막 로그인(S⑪) */
+  lastLoginAt?: string | null;
 }
 
 export interface LoginResult {
@@ -23,13 +27,14 @@ export interface AdminRef {
   name: string;
 }
 
-export const INQUIRY_STATUSES = ['NEW', 'IN_PROGRESS', 'DONE'] as const;
+/** 상태. ANSWERED 는 S⑧(문의 답변)에서 생긴다. */
+export const INQUIRY_STATUSES = ['NEW', 'IN_PROGRESS', 'ANSWERED', 'DONE'] as const;
 export type InquiryStatus = (typeof INQUIRY_STATUSES)[number];
 
 export const INQUIRY_CATEGORIES = ['ACCOUNT', 'READING', 'SYNASTRY', 'BUG', 'OTHER'] as const;
 export type InquiryCategory = (typeof INQUIRY_CATEGORIES)[number];
 
-export interface Inquiry {
+export interface Inquiry extends InquiryV2Fields {
   id: string;
   /** 계약의 다섯 값. 모르는 값이 와도 화면이 깨지지 않게 글자로 받는다. */
   category: string;
@@ -53,16 +58,18 @@ export interface InquiryPage {
 
 export type Counts = Record<string, number>;
 
-export interface Stats {
+export interface Stats extends StatsV2Fields {
   generatedAt: string;
   accounts: { total: number; last7Days: number; last30Days: number };
   profiles: { total: number };
   readings: { total: number };
-  reports: { total: number; byStatus: Counts };
+  /** me · timing · generating 은 v2(결정 043 의 3 — 자세한 풀이 둘) */
+  reports: { total: number; byStatus: Counts; me?: number; timing?: number; generating?: number };
   synastries: { total: number };
   synastryReports: { total: number; byStatus: Counts };
   directions: { total: number; byTopic: Counts };
-  inquiries: { total: number; byStatus: Counts };
+  /** waiting · oldestWaitingAt 은 v2 */
+  inquiries: { total: number; byStatus: Counts; waiting?: number; oldestWaitingAt?: string | null };
 }
 
 export interface Faq {
@@ -150,6 +157,8 @@ export const PLATFORMS = ['ios', 'android'] as const;
 export type Platform = (typeof PLATFORMS)[number];
 
 export interface PlatformConfig {
+  /** 최신 버전(S⑧ — 미만이면 업데이트 권유 창) */
+  latestVersion?: string | null;
   minVersion: string | null;
   storeUrl: string | null;
   message: string | null;
@@ -161,6 +170,9 @@ export interface PlatformConfig {
 export interface Maintenance {
   active: boolean;
   message: string | null;
+  /** 켠 때 · 켠 관리자(결정 043 의 7) */
+  startedAt?: string | null;
+  startedBy?: AdminRef | null;
   updatedAt: string;
   updatedBy: AdminRef | null;
 }
@@ -169,4 +181,116 @@ export interface AppConfig {
   ios: PlatformConfig;
   android: PlatformConfig;
   maintenance: Maintenance;
+}
+
+/* ── v2(서버 결정 043 · 044 와 S⑧ 문의 답변 · 최신 버전) ─────────────────────────
+ * 서버가 아직 주지 않는 필드는 선택(?)으로 받는다. 화면은 없으면 "—" 로 그린다(소유자 "보드 그대로 지금 다").
+ */
+
+/** 새 문의 종류(앱 결정 058). 옛 READING · SYNASTRY · OTHER 줄은 읽기만 한다. */
+export const INQUIRY_CATEGORIES_V2 = ['BUG', 'IDEA', 'ACCOUNT', 'ETC'] as const;
+
+/** 문의를 보낸 사람(계정이 지워졌으면 null) */
+export interface InquiryOwner {
+  userId: string;
+  nickname: string | null;
+  provider: string | null;
+  platform: string | null;
+  appVersion: string | null;
+  joinedAt: string | null;
+}
+
+export interface InquiryV2Fields {
+  answer?: string | null;
+  answeredAt?: string | null;
+  answeredBy?: AdminRef | null;
+  answerDraft?: string | null;
+  owner?: InquiryOwner | null;
+}
+
+export interface UserRow {
+  id: string;
+  nickname: string | null;
+  profileNo: number | null;
+  emailMasked: string | null;
+  /** KAKAO · APPLE · GOOGLE … 모르는 값은 그대로 */
+  provider: string;
+  joinedAt: string;
+  lastSeenAt: string | null;
+  /** NONE · GENERATING · DONE · FAILED */
+  reports: { me: string; timing: string };
+  /** ACTIVE · SUSPENDED */
+  status: string;
+}
+
+export interface UserPage {
+  items: UserRow[];
+  page: number;
+  size: number;
+  total: number;
+}
+
+export interface UserDetail extends UserRow {
+  consents: { termsVersion: string | null; privacyVersion: string | null; pushAt: string | null; marketingAt: string | null };
+  todaySky: { on: boolean; time: string | null };
+  birth: { registered: boolean; hasTime: boolean; hasPlace: boolean };
+  /** kind: NICKNAME · REPORT_ME · REPORT_TIMING · TODAY_SKY, status: DONE · FAILED · GENERATING · PREBUILT … */
+  generations: { kind: string; status: string; at: string | null }[];
+  devices: { platform: string; appVersion: string | null; lastSeenAt: string | null }[];
+  inquiries: { id: string; category: string; status: string; createdAt: string; excerpt?: string | null }[];
+  recent: { at: string; action: string; detail?: string | null }[];
+  suspension: { at: string; by: string | null; reason: string } | null;
+}
+
+/** 현황 v2(결정 043 의 3). 서버가 붙기 전에는 모두 없을 수 있다. */
+export interface StatsV2Fields {
+  users?: { total: number; joinedToday: number; joined7d: number };
+  nicknames?: { total: number };
+  todaySky?: { today: number; onDemand: number; prebuilt: number };
+  failuresToday?: { nickname: number; report: number };
+  pushToday?: { sent: number; failed: number };
+  consents?: { pushRate: number; marketingRate: number; adReachable: number };
+}
+
+export type ActiveRange = 'today' | 'week' | 'month';
+export interface ActiveStats {
+  range: string;
+  points: { label: string; value: number }[];
+  total: number;
+  average: number;
+  previousTotal: number;
+}
+
+export interface CreatedAdmin {
+  admin: AdminAccount;
+  temporaryPassword: string;
+}
+
+export const PUSH_TARGETS = ['HOME', 'TODAY_SKY', 'ME', 'TIMING_MONTH', 'TIMING_YEAR', 'MY'] as const;
+export type PushTarget = (typeof PUSH_TARGETS)[number];
+
+export interface PushEvent {
+  id: string;
+  sentAt: string;
+  title: string;
+  recipients: number;
+  succeeded: number | null;
+  failed: number | null;
+  sentBy: string | null;
+}
+
+export interface PushEventPage {
+  items: PushEvent[];
+  page: number;
+  size: number;
+  total: number;
+}
+
+export interface PushStatus {
+  canSend: boolean;
+  /** null · QUIET_HOURS · DAILY_LIMIT */
+  reason: string | null;
+  sentTodayAt: string | null;
+  sentTodayBy: string | null;
+  nextAvailableAt: string | null;
 }

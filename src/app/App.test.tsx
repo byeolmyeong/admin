@@ -233,8 +233,8 @@ describe('점검 알림', () => {
     await user.click(nav().getByRole('link', { name: t.nav.faqs }));
     await heading(strings.faqs.title);
     expect(screen.getByText(t.maintenance.title)).toBeInTheDocument();
-    // 로그인한 뒤 한 번만 받는다(화면을 옮겨도 다시 묻지 않는다)
-    expect(callsTo(calls, CONFIG)).toHaveLength(1);
+    // 화면 틀은 로그인한 뒤 한 번만 받는다(현황 화면이 머리의 버전 표로 한 번 더 받는다). 화면을 옮겨도 다시 묻지 않는다.
+    expect(callsTo(calls, CONFIG)).toHaveLength(2);
     await user.click(screen.getByRole('link', { name: t.maintenance.link }));
     expect(await heading(strings.appConfig.title)).toBeInTheDocument();
   });
@@ -243,14 +243,14 @@ describe('점검 알림', () => {
     const { calls } = server();
     const view = renderApp(<AppRoutes />);
     await heading(strings.stats.title);
-    await vi.waitFor(() => expect(callsTo(calls, CONFIG)).toHaveLength(1));
+    await vi.waitFor(() => expect(callsTo(calls, CONFIG)).toHaveLength(2));
     expect(screen.queryByText(t.maintenance.title)).not.toBeInTheDocument();
     view.unmount();
 
     const failed = server({ [CONFIG]: { status: 500, body: { error: 'X' } } });
     renderApp(<AppRoutes />);
     await heading(strings.stats.title);
-    await vi.waitFor(() => expect(callsTo(failed.calls, CONFIG)).toHaveLength(1));
+    await vi.waitFor(() => expect(callsTo(failed.calls, CONFIG)).toHaveLength(2));
     expect(screen.queryByText(t.maintenance.title)).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
@@ -267,10 +267,9 @@ describe('점검 알림', () => {
     });
     const user = userEvent.setup();
     renderApp(<AppRoutes />, { route: '/app-config' });
-    const card = within(await screen.findByRole('form', { name: m.title }));
+    const card = within(await screen.findByRole('region', { name: m.title }));
     expect(screen.queryByText(t.maintenance.title)).not.toBeInTheDocument();
     await user.click(card.getByRole('switch', { name: m.active }));
-    await user.click(card.getByRole('button', { name: strings.common.save }));
     await user.click(within(screen.getByRole('alertdialog', { name: m.confirmTitle })).getByRole('button', { name: m.confirmLabel }));
     expect(await banner()).toBeInTheDocument();
     await user.click(nav().getByRole('link', { name: t.nav.stats }));
@@ -278,9 +277,8 @@ describe('점검 알림', () => {
     expect(screen.getByText(t.maintenance.title)).toBeInTheDocument();
 
     await user.click(screen.getByRole('link', { name: t.maintenance.link }));
-    const again = within(await screen.findByRole('form', { name: m.title }));
+    const again = within(await screen.findByRole('region', { name: m.title }));
     await user.click(again.getByRole('switch', { name: m.active }));
-    await user.click(again.getByRole('button', { name: strings.common.save }));
     expect(await screen.findByText(m.savedOff)).toBeInTheDocument();
     expect(screen.queryByText(t.maintenance.title)).not.toBeInTheDocument();
   });

@@ -82,9 +82,10 @@
 
 .sec-title {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-sm);
+  gap: 10px;
   font: var(--type-heading);
 }
 
@@ -368,4 +369,157 @@
 
 .audit-detail__sep {
   color: var(--color-muted);
+}
+
+/* ── 문의 상세(D3): 답변 · 앱 미리보기 · 작성자 ───────────── */
+.answer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: 22px var(--space-lg);
+}
+
+.textarea-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border: var(--line) solid var(--color-hair);
+  border-radius: var(--radius);
+  background: var(--color-paper);
+}
+
+.textarea-box:focus-within {
+  border-color: var(--color-primary);
+}
+
+.textarea-box__input {
+  min-height: 110px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: var(--type-body);
+  color: var(--color-ink);
+  resize: vertical;
+  outline: none;
+}
+
+.textarea-box .field__count {
+  align-self: flex-end;
+}
+
+.answer__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+}
+
+.inquiry__owner-name {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.inquiry__owner .avatar {
+  width: 32px;
+  height: 32px;
+}
+
+.app-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--color-app-bg);
+}
+
+.app-preview__bubble {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-sm);
+  border: var(--line) solid var(--color-app-line);
+  border-radius: var(--radius-pop);
+  background: var(--color-app-card);
+  font: 400 12px/18px var(--font-family);
+  color: var(--color-app-ink);
+}
+
+.app-preview__bubble--answer {
+  border-color: var(--color-app-accent-line);
+  background: var(--color-app-accent-bg);
+}
+
+.app-preview__label {
+  color: var(--color-app-hint);
+}
+
+.app-preview__bubble--answer .app-preview__label {
+  color: var(--color-app-accent-hint);
+}
+
+/* 폰 문의 목록: 종류 선택 메뉴 + 찾기 칸 한 줄 */
+.tools__row {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.tools__row .select__button--chip {
+  height: var(--size-button);
+  border-radius: var(--radius);
+}
+
+/* ── 첫 로그인 비밀번호 변경(D22) ─────────────────────── */
+.info-box {
+  padding: var(--space-sm) 14px;
+  border-radius: var(--radius);
+  background: var(--color-primary-light);
+  font: var(--type-table);
+  color: var(--color-primary-ink);
+}
+
+.info-box--mute {
+  background: var(--color-fill);
+  color: var(--color-gray);
+}
+
+.info-box--warn {
+  background: var(--color-warn-light);
+  color: var(--color-warn);
+}
+
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rules__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font: var(--type-table);
+  color: var(--color-hint);
+}
+
+.rules__item.is-ok {
+  color: var(--color-good);
+}
+
+.copy-row {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.copy-row .input {
+  flex: 1;
+  font: 500 16px/24px ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.04em;
+}
+
+.copy-row__button {
+  height: var(--size-input);
+}
+
+.who__id {
+  font-weight: 600;
 }

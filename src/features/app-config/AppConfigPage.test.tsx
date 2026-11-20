@@ -42,7 +42,9 @@ const retype = async (field: HTMLElement, text: string) => {
 
 describe('앱 설정 — 플랫폼(D6)', () => {
   it('iOS · Android 카드에 받은 값을 채우고, 차단 여부 표 · 머리 안내를 보인다', async () => {
-    await open();
+    await open({ ...iosSet, latestVersion: '1.3.0' });
+    expect(ios().getByLabelText(t.latestVersion)).toHaveValue('1.3.0');
+    expect(ios().getByText(t.latestVersionHelp)).toBeInTheDocument();
     expect(ios().getByLabelText(t.minVersion)).toHaveValue('1.2.0');
     expect(ios().getByLabelText(t.storeUrl)).toHaveValue('https://apps.apple.com/kr/app/id0000000000');
     expect(ios().getByRole('switch', { name: t.blockNow })).not.toBeChecked();
@@ -70,6 +72,7 @@ describe('앱 설정 — 플랫폼(D6)', () => {
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     expect(callsTo(calls, PUT_IOS)).toHaveLength(1);
     expect(callsTo(calls, PUT_IOS)[0]?.body).toEqual({
+      latestVersion: null,
       minVersion: '1.2.0',
       storeUrl: 'https://apps.apple.com/kr/app/id1111111111',
       message: '새 버전이 나왔어요.',
@@ -84,7 +87,7 @@ describe('앱 설정 — 플랫폼(D6)', () => {
     await retype(ios().getByLabelText(t.storeUrl), '');
     await save();
     await screen.findByRole('status');
-    expect(callsTo(calls, PUT_IOS)[0]?.body).toEqual({ minVersion: null, storeUrl: null, message: '새 버전이 나왔어요.', blockNow: false });
+    expect(callsTo(calls, PUT_IOS)[0]?.body).toEqual({ latestVersion: null, minVersion: null, storeUrl: null, message: '새 버전이 나왔어요.', blockNow: false });
   });
 
   it('Android 는 자기 경로로 저장하고 iOS 는 그대로다', async () => {
@@ -93,6 +96,7 @@ describe('앱 설정 — 플랫폼(D6)', () => {
     await save(android());
     expect(await screen.findByRole('status')).toHaveTextContent(t.saved(t.platforms.android));
     expect(callsTo(calls, PUT_ANDROID)[0]?.body).toEqual({
+      latestVersion: null,
       minVersion: null,
       storeUrl: 'https://play.google.com/store/apps/details?id=app.example',
       message: null,
@@ -114,6 +118,21 @@ describe('앱 설정 — 플랫폼(D6)', () => {
     expect(ios().getByText(t.errors.INVALID_VERSION)).toBeInTheDocument();
     expect(callsTo(calls, PUT_IOS)).toHaveLength(0);
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+
+  it('최신 버전: 형식을 보고, 최소 버전보다 낮으면 막는다 · 맞으면 함께 보낸다', async () => {
+    const { calls } = await open();
+    await retype(ios().getByLabelText(t.latestVersion), '1.1.0');
+    await save();
+    expect(ios().getByText(t.errors.LATEST_BELOW_MIN)).toBeInTheDocument();
+    await retype(ios().getByLabelText(t.latestVersion), 'v2');
+    await save();
+    expect(ios().getAllByText(t.errors.INVALID_VERSION).length).toBeGreaterThan(0);
+    expect(callsTo(calls, PUT_IOS)).toHaveLength(0);
+    await retype(ios().getByLabelText(t.latestVersion), '1.3.0');
+    await save();
+    await screen.findByRole('status');
+    expect(callsTo(calls, PUT_IOS)[0]?.body).toMatchObject({ latestVersion: '1.3.0', minVersion: '1.2.0' });
   });
 
   it('즉시 차단은 최소 버전이 있어야 켤 수 있다', async () => {
@@ -188,6 +207,7 @@ describe('앱 설정 — 플랫폼(D6)', () => {
 
   it.each([
     ['INVALID_VERSION', t.errors.INVALID_VERSION],
+    ['LATEST_BELOW_MIN', t.errors.LATEST_BELOW_MIN],
     ['INVALID_STORE_URL', t.errors.INVALID_STORE_URL],
     ['BLOCK_REQUIRES_MIN_VERSION', t.errors.BLOCK_REQUIRES_MIN_VERSION],
   ])('서버가 %s 로 거절하면 짧은 알림으로 알리고 쓴 값은 그대로 둔다', async (code, text) => {

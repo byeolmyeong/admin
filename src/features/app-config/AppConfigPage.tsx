@@ -29,18 +29,19 @@ interface Asking {
 }
 
 /**
- * 플랫폼 카드(D6): 최소 버전 · 스토어 주소 · 즉시 차단. 업데이트 안내 문구(message)는 화면에 두지 않고 받은 값을 그대로 보낸다
- * (계약은 네 키를 모두 보낸다). 최신 버전 칸은 서버 S⑧ 뒤(계획 D1-2).
+ * 플랫폼 카드(D6): 최신 버전 · 최소 버전 · 스토어 주소 · 즉시 차단. 업데이트 안내 문구(message)는 화면에 두지 않고 받은 값을 그대로 보낸다.
+ * 최신 버전(latestVersion)은 S⑧ — 옛 서버는 이 키를 무시한다.
  */
 function PlatformCard({ platform, config, onSaved }: { platform: Platform; config: PlatformConfig; onSaved: (next: PlatformConfig) => void }) {
   const { api } = useAuth();
   const toast = useToast();
   const name = t.platforms[platform];
   // 폼은 GET 으로 받은 값으로 채운다(저장은 네 값을 통째로 보낸다).
+  const [latestVersion, setLatestVersion] = useState(config.latestVersion ?? '');
   const [minVersion, setMinVersion] = useState(config.minVersion ?? '');
   const [storeUrl, setStoreUrl] = useState(config.storeUrl ?? '');
   const [blockNow, setBlockNow] = useState(config.blockNow);
-  const [errors, setErrors] = useState<{ minVersion?: string; storeUrl?: string; blockNow?: string }>({});
+  const [errors, setErrors] = useState<{ latestVersion?: string; minVersion?: string; storeUrl?: string; blockNow?: string }>({});
   const [asking, setAsking] = useState<Asking | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -48,6 +49,7 @@ function PlatformCard({ platform, config, onSaved }: { platform: Platform; confi
     setBusy(true);
     try {
       const next = await api.putPlatformConfig(platform, input);
+      setLatestVersion(next.latestVersion ?? input.latestVersion ?? '');
       setMinVersion(next.minVersion ?? '');
       setStoreUrl(next.storeUrl ?? '');
       setBlockNow(next.blockNow);
@@ -67,18 +69,26 @@ function PlatformCard({ platform, config, onSaved }: { platform: Platform; confi
     if (busy) return;
     // 비운 칸은 null 로 보낸다(minVersion · storeUrl 의 빈 글은 틀린 값이다).
     const input: PlatformConfigInput = {
+      latestVersion: latestVersion === '' ? null : latestVersion,
       minVersion: minVersion === '' ? null : minVersion,
       storeUrl: storeUrl === '' ? null : storeUrl,
       message: config.message,
       blockNow,
     };
+    const latestBad = input.latestVersion !== null && !isValidVersion(input.latestVersion);
+    const minBad = input.minVersion !== null && !isValidVersion(input.minVersion);
     const found = {
-      minVersion: input.minVersion !== null && !isValidVersion(input.minVersion) ? t.errors.INVALID_VERSION : undefined,
+      latestVersion: latestBad
+        ? t.errors.INVALID_VERSION
+        : input.latestVersion !== null && input.minVersion !== null && !minBad && compareVersions(input.latestVersion, input.minVersion) < 0
+          ? t.errors.LATEST_BELOW_MIN
+          : undefined,
+      minVersion: minBad ? t.errors.INVALID_VERSION : undefined,
       storeUrl: input.storeUrl !== null && !isValidStoreUrl(input.storeUrl) ? t.errors.INVALID_STORE_URL : undefined,
       blockNow: input.blockNow && input.minVersion === null ? t.errors.BLOCK_REQUIRES_MIN_VERSION : undefined,
     };
     setErrors(found);
-    if (found.minVersion || found.storeUrl || found.blockNow) return;
+    if (found.latestVersion || found.minVersion || found.storeUrl || found.blockNow) return;
 
     const version = input.minVersion;
     const raised = version !== null && (config.minVersion === null || !isValidVersion(config.minVersion) || compareVersions(version, config.minVersion) > 0);
@@ -103,8 +113,11 @@ function PlatformCard({ platform, config, onSaved }: { platform: Platform; confi
         {name}
         <Pill tone={config.blockNow ? 'bad' : 'ok'}>{config.blockNow ? t.blocking : t.notBlocking}</Pill>
       </h2>
-      <TextField label={t.minVersion} value={minVersion} onChange={setMinVersion} help={t.minVersionHelp} error={errors.minVersion} autoComplete="off" />
-      <TextField label={t.storeUrl} value={storeUrl} onChange={setStoreUrl} help={t.storeUrlHelp} error={errors.storeUrl} autoComplete="off" />
+      <div className="f2">
+        <TextField label={t.latestVersion} value={latestVersion} onChange={setLatestVersion} help={t.latestVersionHelp} error={errors.latestVersion} autoComplete="off" />
+        <TextField label={t.minVersion} value={minVersion} onChange={setMinVersion} help={t.minVersionHelp} error={errors.minVersion} autoComplete="off" />
+      </div>
+      <TextField label={t.storeUrl} value={storeUrl} onChange={setStoreUrl} error={errors.storeUrl} autoComplete="off" />
       <div className="config-card__switch">
         <Switch label={t.blockNow} help={t.blockHelp} checked={blockNow} onChange={setBlockNow} disabled={busy} danger />
         {errors.blockNow && (

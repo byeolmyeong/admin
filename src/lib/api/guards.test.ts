@@ -119,3 +119,37 @@ describe('guards', () => {
     expect(isAppConfig({ ...appConfig(), android: {} })).toBe(false);
   });
 });
+
+describe('guards — v2(서버가 아직 주지 않는 필드는 없어도 통과)', () => {
+  it('Inquiry: answer · owner 가 없어도 되고, 있으면 모양이 맞아야 한다', () => {
+    expect(isInquiry(inquiry())).toBe(true);
+    expect(isInquiry({ ...inquiry(), answer: '답', answeredAt: '2026-11-20T01:00:00Z', answeredBy: { id: 'a', name: 'kim' }, answerDraft: null })).toBe(true);
+    expect(isInquiry({ ...inquiry(), owner: { userId: 'u1', nickname: '새벽별', provider: 'KAKAO', platform: 'ios', appVersion: '1.0.2', joinedAt: '2026-11-08T05:20:05Z' } })).toBe(true);
+    expect(isInquiry({ ...inquiry(), owner: null })).toBe(true);
+    expect(isInquiry({ ...inquiry(), answer: 3 })).toBe(false);
+    expect(isInquiry({ ...inquiry(), owner: { nickname: 'x' } })).toBe(false);
+  });
+
+  it('Stats: v2 묶음은 없어도 되고, 옛 궁합 · 방향성 묶음이 빠져도 된다', () => {
+    const { synastries: _s, synastryReports: _sr, directions: _d, ...v1 } = stats();
+    void _s;
+    void _sr;
+    void _d;
+    expect(isStats(v1)).toBe(true);
+    expect(isStats({ ...stats(), users: { total: 1, joinedToday: 0, joined7d: 1 }, consents: { pushRate: 0.62, marketingRate: 0.18, adReachable: 211 } })).toBe(true);
+    expect(isStats({ ...stats(), users: { total: 1 } })).toBe(false);
+  });
+
+  it('AdminAccount · Admin: lastLoginAt · mustChangePassword 는 선택', () => {
+    expect(isAdminAccount({ ...adminAccount(), lastLoginAt: '2026-11-20T00:00:00Z' })).toBe(true);
+    expect(isAdminAccount({ ...adminAccount(), lastLoginAt: 1 })).toBe(false);
+    expect(isAdmin({ ...admin, mustChangePassword: true })).toBe(true);
+    expect(isAdmin({ ...admin, mustChangePassword: 'yes' })).toBe(false);
+  });
+
+  it('PlatformConfig · Maintenance: latestVersion · startedAt 은 선택', () => {
+    expect(isPlatformConfig(platformConfig({ latestVersion: '1.0.2' }))).toBe(true);
+    expect(isPlatformConfig({ ...platformConfig(), latestVersion: 2 })).toBe(false);
+    expect(isMaintenance(maintenance({ startedAt: '2026-11-20T00:00:00Z', startedBy: { id: 'a', name: 'kim' } }))).toBe(true);
+  });
+});

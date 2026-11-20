@@ -4,22 +4,20 @@ import { LoadError, Loading } from '../../components/Feedback';
 import { EmptyState } from '../../components/EmptyState';
 import { PageHeader } from '../../components/PageHeader';
 import { Pill } from '../../components/Pill';
-import { Select } from '../../components/Select';
 import { useToast } from '../../components/Toast';
 import { strings } from '../../content/strings';
-import { INQUIRY_STATUSES } from '../../lib/api/types';
 import type { Inquiry } from '../../lib/api/types';
 import type { InquiryPatch } from '../../lib/api/admin';
 import { errorCode, errorMessage } from '../../lib/errorMessage';
-import { codePointLength, formatKst, mailtoHref } from '../../lib/text';
+import { codePointLength, formatKst, mailtoHref, oneLine } from '../../lib/text';
 import { useLoad } from '../../lib/useLoad';
 import { useAuth } from '../auth/AuthContext';
-import { categoryLabel, statusLabel, statusTone } from './labels';
+import { categoryLabel, platformLabel, providerLabel, statusLabel, statusTone } from './labels';
 import { useWaitingCount } from './WaitingCount';
 
 const t = strings.inquiries.detail;
 const MEMO_MAX = 2000;
-const STATUS_OPTIONS = INQUIRY_STATUSES.map((value) => ({ value, label: statusLabel(value) }));
+const ANSWER_MAX = 2000;
 
 /** 옛 문의(이메일로 답장받던 때)의 답장 이메일. 1.0.0 앱 안 문의에는 없다(앱 결정 058). */
 function ReplyEmail({ email }: { email: string }) {
@@ -49,6 +47,36 @@ function ReplyEmail({ email }: { email: string }) {
   );
 }
 
+/** 작성자 줄(D3): 닉네임 · 로그인 수단 · 기기 · 가입, "사용자 상세 ›". 서버가 owner 를 주기 전엔 계정 코드 · 활동 기록. */
+function Owner({ inquiry }: { inquiry: Inquiry }) {
+  const owner = inquiry.owner ?? null;
+  const name = owner?.nickname ?? inquiry.ownerRef;
+  const device = owner && [platformLabel(owner.platform), owner.appVersion].filter(Boolean).join(' ');
+  const meta = owner ? [providerLabel(owner.provider), device || null, owner.joinedAt ? t.joined(formatKst(owner.joinedAt)) : null].filter((x): x is string => Boolean(x)) : [];
+  return (
+    <div className="inquiry__owner">
+      <span className="avatar" aria-hidden="true">
+        {[...name][0]}
+      </span>
+      <span className="inquiry__owner-text">
+        <span className={owner?.nickname ? 'inquiry__owner-name' : 'inquiry__owner-name mono'}>{name}</span>
+        {meta.length > 0 && <span className="muted">{t.ownerMeta(meta)}</span>}
+      </span>
+      {owner ? (
+        <Link className="link-more" to={`/users/${encodeURIComponent(owner.userId)}`}>
+          {t.userDetail}
+          <span aria-hidden="true"> ›</span>
+        </Link>
+      ) : (
+        <Link className="link-more" to={`/audit-logs?actorType=USER&actorRef=${encodeURIComponent(inquiry.ownerRef)}`}>
+          {t.ownerActions}
+          <span aria-hidden="true"> ›</span>
+        </Link>
+      )}
+    </div>
+  );
+}
+
 interface DetailProps {
   inquiry: Inquiry;
   onChanged: (next: Inquiry) => void;
@@ -59,11 +87,13 @@ function Detail({ inquiry, onChanged, onGone }: DetailProps) {
   const { api } = useAuth();
   const toast = useToast();
   const { refresh } = useWaitingCount();
-  const bodyId = useId();
+  const answerId = useId();
+  const answerCountId = useId();
   const memoId = useId();
-  const memoCountId = useId();
+  const [answer, setAnswer] = useState(inquiry.answer ?? inquiry.answerDraft ?? '');
   const [memo, setMemo] = useState(inquiry.memo ?? '');
   const [busy, setBusy] = useState(false);
+  const answerCount = codePointLength(answer.trim());
   const memoCount = codePointLength(memo.trim());
 
   const patch = async (change: InquiryPatch, done: string) => {
@@ -73,7 +103,7 @@ function Detail({ inquiry, onChanged, onGone }: DetailProps) {
       const next = await api.patchInquiry(inquiry.id, change);
       onChanged(next);
       if ('memo' in change) setMemo(next.memo ?? '');
-      if ('status' in change) refresh();
+      if ('answer' in change) refresh();
       toast.success(done);
     } catch (e) {
       // 실패해도 적던 내용은 그대로 둔다(결정 003 의 5).
@@ -84,49 +114,68 @@ function Detail({ inquiry, onChanged, onGone }: DetailProps) {
     }
   };
 
+  /** 내부 메모는 칸을 떠날 때 바뀌었으면 저장한다(D3 — 저장 버튼 없음). */
+  const saveMemo = () => {
+    const next = memo.trim() === '' ? null : memo.trim();
+    if (next === (inquiry.memo ?? null)) return;
+    if (memoCount > MEMO_MAX) {
+      toast.error(t.errors.INVALID_MEMO);
+      return;
+    }
+    void patch({ memo: next }, t.memoSaved);
+  };
+
+  const answerOk = answerCount >= 1 && answerCount <= ANSWER_MAX;
+  const answered = inquiry.answeredAt ?? null;
+
   return (
     <div className="split">
-      <section className="card inquiry">
-        <span className="inquiry__meta">
-          <Pill tone="mute">{categoryLabel(inquiry.category)}</Pill>
-          <Pill tone={statusTone(inquiry.status)}>{statusLabel(inquiry.status)}</Pill>
-          <span className="mono muted">{formatKst(inquiry.createdAt)}</span>
-        </span>
-        {/* 사용자가 쓴 글이다: 글자로만 넣는다(React 가 이스케이프한다). dangerouslySetInnerHTML 을 쓰지 않는다. */}
-        <p className="inquiry__body prewrap" id={bodyId} aria-label={t.body}>
-          {inquiry.body}
-        </p>
-        <div className="inquiry__owner">
-          <span className="inquiry__owner-text">
-            <span className="inquiry__label">{t.owner}</span>
-            <span className="mono selectable">{inquiry.ownerRef}</span>
-            <span className="field__help">{t.ownerHelp}</span>
-          </span>
-          <Link className="link-more" to={`/audit-logs?actorType=USER&actorRef=${encodeURIComponent(inquiry.ownerRef)}`}>
-            {t.ownerActions}
-            <span aria-hidden="true"> ›</span>
-          </Link>
-        </div>
-        {inquiry.replyEmail !== null && <ReplyEmail email={inquiry.replyEmail} />}
-      </section>
-
       <div className="side-cards">
-        <section className="card side-card">
-          <h2 className="sec-title">{t.status}</h2>
-          <Select
-            variant="field"
-            ariaLabel={t.status}
-            value={inquiry.status}
-            defaultValue={inquiry.status}
-            options={STATUS_OPTIONS}
-            disabled={busy}
-            onChange={(value) => value !== '' && value !== inquiry.status && patch({ status: value }, t.statusSaved)}
-          />
-          <p className="field__help">
-            {inquiry.handledBy ? t.handled(inquiry.handledBy.name, inquiry.handledAt === null ? '' : formatKst(inquiry.handledAt)) : t.notHandled}
+        <section className="card inquiry">
+          <span className="inquiry__meta">
+            <Pill tone="mute">{categoryLabel(inquiry.category)}</Pill>
+            <Pill tone={statusTone(inquiry.status)}>{statusLabel(inquiry.status)}</Pill>
+            <span className="mono muted">{formatKst(inquiry.createdAt)}</span>
+          </span>
+          {/* 사용자가 쓴 글이다: 글자로만 넣는다(React 가 이스케이프한다). dangerouslySetInnerHTML 을 쓰지 않는다. */}
+          <p className="inquiry__body prewrap" aria-label={t.body}>
+            {inquiry.body}
           </p>
+          <Owner inquiry={inquiry} />
+          {inquiry.replyEmail !== null && <ReplyEmail email={inquiry.replyEmail} />}
         </section>
 
+        <section className="card answer">
+          <h2 className="sec-title">
+            <label htmlFor={answerId}>{t.answer}</label>
+          </h2>
+          <div className="textarea-box">
+            <textarea
+              id={answerId}
+              className="textarea-box__input"
+              value={answer}
+              aria-describedby={answerCountId}
+              aria-invalid={answerCount > ANSWER_MAX ? true : undefined}
+              onChange={(e) => setAnswer(e.target.value)}
+            />
+            <span className={answerCount > ANSWER_MAX ? 'field__count field__count--over' : 'field__count'} id={answerCountId}>
+              {strings.common.counter(answerCount, ANSWER_MAX)}
+            </span>
+          </div>
+          <p className="field__help">{t.answerHelp}</p>
+          {answered && <p className="field__help">{t.answered((inquiry.answeredBy ?? inquiry.handledBy)?.name ?? '', formatKst(answered))}</p>}
+          <div className="answer__actions">
+            <button type="button" className="btn btn--secondary" disabled={busy || answerCount > ANSWER_MAX} onClick={() => patch({ answerDraft: answer.trim() === '' ? null : answer.trim() }, t.drafted)}>
+              {t.draft}
+            </button>
+            <button type="button" className="btn btn--primary" disabled={busy || !answerOk} onClick={() => patch({ answer: answer.trim() }, t.sent)}>
+              {t.send}
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <div className="side-cards">
         <section className="card side-card">
           <h2 className="sec-title">
             <label htmlFor={memoId}>{t.memo}</label>
@@ -137,22 +186,25 @@ function Detail({ inquiry, onChanged, onGone }: DetailProps) {
             className="input input--multiline input--memo"
             placeholder={t.memoPlaceholder}
             value={memo}
-            aria-describedby={memoCountId}
             aria-invalid={memoCount > MEMO_MAX ? true : undefined}
             onChange={(e) => setMemo(e.target.value)}
+            onBlur={saveMemo}
           />
-          <div className="side-card__foot">
-            <span className={memoCount > MEMO_MAX ? 'field__count field__count--over' : 'field__count'} id={memoCountId}>
-              {strings.common.counter(memoCount, MEMO_MAX)}
-            </span>
-            <button
-              type="button"
-              className="btn btn--primary"
-              disabled={busy || memoCount > MEMO_MAX}
-              onClick={() => patch({ memo: memo.trim() === '' ? null : memo.trim() }, t.memoSaved)}
-            >
-              {t.memoSave}
-            </button>
+        </section>
+
+        <section className="card side-card" aria-labelledby="preview-title">
+          <h2 className="sec-title" id="preview-title">
+            {t.preview}
+          </h2>
+          <div className="app-preview">
+            <div className="app-preview__bubble">
+              <span className="app-preview__label">{t.previewMine(categoryLabel(inquiry.category))}</span>
+              {oneLine(inquiry.body, 40)}
+            </div>
+            <div className="app-preview__bubble app-preview__bubble--answer">
+              <span className="app-preview__label">{t.previewAnswer}</span>
+              {answer.trim() === '' ? t.previewEmpty : oneLine(answer, 40)}
+            </div>
           </div>
         </section>
       </div>
@@ -160,7 +212,7 @@ function Detail({ inquiry, onChanged, onGone }: DetailProps) {
   );
 }
 
-/** 문의 상세(D3): 지금 계약의 처리 상태 · 내부 메모. 답변 · 앱 미리보기는 서버 S⑧ 뒤(계획 D①). */
+/** 문의 상세(D3): 문의 · 작성자 · 답변(임시 저장 · 전송), 오른쪽 내부 메모 · 앱 미리보기. */
 export function InquiryDetailPage() {
   const { api } = useAuth();
   const { id = '' } = useParams();
