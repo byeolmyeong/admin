@@ -109,6 +109,17 @@ describe('사용자 상세(D5 · D12 · D13 · D26)', () => {
     expect(screen.getByRole('link', { name: strings.users.title })).toHaveAttribute('href', '/users');
   });
 
+  it('서버 푸시 묶음 전(S⑪ 계약): 오늘의 하늘 · 기기 칸이 없어도 그리고 "—"', async () => {
+    const withoutPush: Record<string, unknown> = { ...userDetail() };
+    delete withoutPush.todaySky;
+    delete withoutPush.devices;
+    server({ [`GET /admin/users/${USER.id}`]: { status: 200, body: withoutPush } });
+    open();
+    const account = within(await screen.findByRole('region', { name: d.account }));
+    expect(account.getByText(d.todaySky).nextElementSibling).toHaveTextContent(strings.users.none);
+    expect(within(screen.getByRole('region', { name: d.devices })).getByText(strings.users.none)).toBeInTheDocument();
+  });
+
   it('실패한 생성은 재생성을 보낸다', async () => {
     const { calls } = server({ [`POST /admin/users/${USER.id}/regenerate`]: { status: 204 } });
     open();
@@ -132,7 +143,7 @@ describe('사용자 상세(D5 · D12 · D13 · D26)', () => {
 
   it('정지된 사용자(D26): 정지 카드와 정지 해제(D26-1)', async () => {
     const { calls } = server({
-      [`GET /admin/users/${USER.id}`]: { status: 200, body: userDetail({ status: 'SUSPENDED', suspension: { at: '2026-11-18T02:02:26Z', by: 'lee', reason: '문의 도배' } }) },
+      [`GET /admin/users/${USER.id}`]: { status: 200, body: userDetail({ status: 'SUSPENDED', suspension: { at: '2026-11-18T02:02:26Z', by: { id: '22222222-2222-4222-8222-222222222222', name: 'lee' }, reason: '문의 도배' } }) },
       [`POST /admin/users/${USER.id}/unsuspend`]: { status: 204 },
     });
     const user = userEvent.setup();

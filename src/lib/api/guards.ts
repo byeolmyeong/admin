@@ -220,19 +220,18 @@ export const isUserDetail: Guard<UserDetail> = (v): v is UserDetail =>
   isStrOrNull(v.consents, 'privacyVersion') &&
   isStrOrNull(v.consents, 'pushAt') &&
   isStrOrNull(v.consents, 'marketingAt') &&
-  isObj(v.todaySky) &&
-  isBool(v.todaySky.on) &&
-  isStrOrNull(v.todaySky, 'time') &&
+  // 오늘의 하늘 · 기기는 서버 푸시 묶음(결정 042)이 더한다 — 없거나 null 이어도 된다.
+  (v.todaySky === undefined || v.todaySky === null || (isObj(v.todaySky) && isBool(v.todaySky.on) && isStrOrNull(v.todaySky, 'time'))) &&
   isObj(v.birth) &&
   isBool(v.birth.registered) &&
   isBool(v.birth.hasTime) &&
   isBool(v.birth.hasPlace) &&
   listOf(v.generations, (g) => isStr(g.kind) && isStr(g.status) && isStrOrNull(g, 'at')) &&
-  listOf(v.devices, (d) => isStr(d.platform) && isStrOrNull(d, 'appVersion') && isStrOrNull(d, 'lastSeenAt')) &&
+  (v.devices === undefined || v.devices === null || listOf(v.devices, (d) => isStr(d.platform) && isStrOrNull(d, 'appVersion') && isStrOrNull(d, 'lastSeenAt'))) &&
   listOf(v.inquiries, (i) => isStr(i.id) && isStr(i.category) && isStr(i.status) && isStr(i.createdAt) && optStr(i, 'excerpt')) &&
   listOf(v.recent, (r) => isStr(r.at) && isStr(r.action) && optStr(r, 'detail')) &&
   'suspension' in v &&
-  (v.suspension === null || (isObj(v.suspension) && isStr(v.suspension.at) && isStrOrNull(v.suspension, 'by') && isStr(v.suspension.reason)));
+  (v.suspension === null || (isObj(v.suspension) && isStr(v.suspension.at) && 'by' in v.suspension && (v.suspension.by === null || isAdminRef(v.suspension.by)) && isStr(v.suspension.reason)));
 
 /* ── 푸시 발송(결정 043 의 6) ── */
 export const isAudience = (v: unknown): v is { count: number } => isObj(v) && isCount(v.count);
