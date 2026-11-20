@@ -46,6 +46,8 @@ export function AuthProvider({ baseUrl, children }: { baseUrl: string; children:
   const [notice, setNotice] = useState<AuthNotice | null>(null);
   const tokenRef = useRef<string | null>(session?.token ?? null);
   const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
+  // 서버가 403 PASSWORD_CHANGE_REQUIRED 로 막았다 — 내 정보(mustChangePassword)를 받기 전이어도 첫 로그인 화면으로 간다.
+  const [changeRequired, setChangeRequired] = useState(false);
 
   const end = useCallback((why: AuthNotice) => {
     clearSession();
@@ -54,11 +56,21 @@ export function AuthProvider({ baseUrl, children }: { baseUrl: string; children:
     setAdmin(null);
     setAdminError(null);
     setTemporaryPassword(null);
+    setChangeRequired(false);
     setNotice(why);
   }, []);
 
   const api = useMemo(
-    () => createAdminApi(createClient({ baseUrl, getToken: () => tokenRef.current, onUnauthorized: () => end('expired') })),
+    () =>
+      createAdminApi(
+        createClient({
+          baseUrl,
+          getToken: () => tokenRef.current,
+          onUnauthorized: () => end('expired'),
+          // 서버가 비밀번호 변경을 먼저 요구하면(결정 043 의 5) 화면 틀 대신 첫 로그인 화면으로 간다.
+          onPasswordChangeRequired: () => setChangeRequired(true),
+        }),
+      ),
     [baseUrl, end],
   );
 
@@ -114,6 +126,7 @@ export function AuthProvider({ baseUrl, children }: { baseUrl: string; children:
     async (current: string, next: string) => {
       await api.changePassword(current, next);
       setTemporaryPassword(null);
+      setChangeRequired(false);
       setAdmin((prev) => (prev ? { ...prev, mustChangePassword: false } : prev));
     },
     [api],
@@ -133,7 +146,7 @@ export function AuthProvider({ baseUrl, children }: { baseUrl: string; children:
     setAdminAttempt((n) => n + 1);
   }, []);
 
-  const mustChangePassword = admin?.mustChangePassword === true;
+  const mustChangePassword = admin?.mustChangePassword === true || changeRequired;
   const value = useMemo<AuthValue>(
     () => ({ api, signedIn: session !== null, admin, adminError, retryAdmin, notice, login, logout, mustChangePassword, temporaryPassword, changeFirstPassword }),
     [api, session, admin, adminError, retryAdmin, notice, login, logout, mustChangePassword, temporaryPassword, changeFirstPassword],
