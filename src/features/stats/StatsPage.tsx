@@ -23,6 +23,8 @@ const DAY = 86_400_000;
 const WAITING_SHOWN = 3;
 const n = (v: number | undefined): string => (v === undefined ? t.none : v.toLocaleString('ko-KR'));
 const percent = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
+/** 막대 위 여유(가장 큰 막대가 칸의 87% — 캔버스 D1) */
+const HEADROOM = 1.15;
 
 function Kpi({ label, icon, value, sub, danger }: { label: string; icon: IconName; value: string; sub: ReactNode; danger?: boolean }) {
   return (
@@ -53,7 +55,20 @@ function Kpis({ stats, now }: { stats: Stats; now: number }) {
   const consents = stats.consents;
   return (
     <div className="kpis">
-      <Kpi label={t.kpi.accounts} icon="user" value={n(total)} sub={t.accountsSub(n(users?.joinedToday), n(users?.joined7d ?? stats.accounts.last7Days))} />
+      <Kpi
+        label={t.kpi.accounts}
+        icon="user"
+        value={n(total)}
+        sub={
+          <>
+            {/* 오늘 가입이 있으면 초록 굵게(캔버스 D1) */}
+            {t.accountsToday}{' '}
+            {users && users.joinedToday > 0 ? <b className="kpi__up">{t.joinedUp(n(users.joinedToday))}</b> : t.joinedUp(n(users?.joinedToday))}
+            {' · '}
+            {t.accountsWeek(n(users?.joined7d ?? stats.accounts.last7Days))}
+          </>
+        }
+      />
       <Kpi label={t.kpi.nicknames} icon="stats" value={n(nicknames)} sub={t.ratioSub(percent(nicknames, total))} />
       <Kpi label={t.kpi.reports} icon="help" value={n(reportsTotal)} sub={t.reportsSub(n(r.me), n(r.timing), n(r.generating))} />
       <Kpi label={t.kpi.todaySky} icon="bell" value={n(sky?.today)} sub={t.todaySkySub(n(sky?.onDemand), n(sky?.prebuilt))} />
@@ -64,7 +79,19 @@ function Kpis({ stats, now }: { stats: Stats; now: number }) {
         sub={t.failuresSub(n(fail?.nickname), n(fail?.report))}
         danger={fail !== undefined && fail.nickname + fail.report > 0}
       />
-      <Kpi label={t.kpi.push} icon="bell" value={n(push?.sent)} sub={t.pushSub(n(push ? push.sent - push.failed : undefined), n(push?.failed))} />
+      <Kpi
+        label={t.kpi.push}
+        icon="bell"
+        value={n(push?.sent)}
+        sub={
+          <>
+            {t.pushOk(n(push ? push.sent - push.failed : undefined))}
+            {' · '}
+            {/* 실패가 있으면 빨강 굵게(캔버스 D1) */}
+            {push && push.failed > 0 ? <b className="kpi__down">{t.pushFailed(n(push.failed))}</b> : t.pushFailed(n(push?.failed))}
+          </>
+        }
+      />
       <Kpi
         label={t.kpi.waiting}
         icon="inbox"
@@ -90,19 +117,19 @@ function Active() {
   const { state } = useLoad(useCallback(() => api.getActiveStats(range), [api, range]));
   const data = state.status === 'ready' ? state.data : null;
   const change = data && data.previousTotal > 0 ? Math.round(((data.total - data.previousTotal) / data.previousTotal) * 100) : null;
-  const max = data ? Math.max(1, ...data.points.map((p) => p.value)) : 1;
+  const max = data ? Math.max(1, ...data.points.map((p) => p.value)) * HEADROOM : 1;
   const many = (data?.points.length ?? 0) > 12;
   const a = t.active;
 
   return (
-    <section className="card active" aria-labelledby="active-title">
-      <div className="active__head">
+    <section className="card active-card" aria-labelledby="active-title">
+      <div className="active-card__head">
         <h2 className="sec-title" id="active-title">
           {a.title}
         </h2>
         <Segmented label={a.rangeLabel} value={range} options={RANGES.map((value) => ({ value, label: a.ranges[value] }))} onChange={setRange} />
       </div>
-      <div className="active__nums">
+      <div className="active-card__nums">
         <span>
           <small>{a.total[range]}</small>
           <b>{data ? a.people(n(data.total)) : t.none}</b>
@@ -121,13 +148,15 @@ function Active() {
           {data.points.map((p, i) => (
             <span key={`${p.label}-${i}`} className={i === data.points.length - 1 ? 'bars__col is-last' : 'bars__col'}>
               {!many && <span className="bars__value">{n(p.value)}</span>}
-              <span className="bars__bar" style={{ height: `${Math.max(2, (p.value / max) * 100)}%` }} />
+              <span className="bars__track">
+                <span className="bars__bar" style={{ height: `${Math.max(2, (p.value / max) * 100)}%` }} />
+              </span>
               <span className="bars__label">{!many || i % 3 === 0 || i === data.points.length - 1 ? p.label : ''}</span>
             </span>
           ))}
         </div>
       ) : (
-        <p className="active__empty">{state.status === 'loading' ? strings.common.loading : a.failed}</p>
+        <p className="active-card__empty">{state.status === 'loading' ? strings.common.loading : a.failed}</p>
       )}
       <p className="field__help">{a.note}</p>
     </section>

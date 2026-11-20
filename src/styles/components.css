@@ -408,6 +408,17 @@
   font-weight: 600;
 }
 
+/* 입력 칸 모양의 선택(푸시 이동 화면 등)은 값이 있어도 입력 칸처럼 — 강조는 거르기 칩만 */
+.select__button--field.is-set {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-weight: 400;
+}
+
+.select__button--field.is-set:not(.is-open) {
+  border-color: var(--color-hair);
+}
+
 .pager .select__button {
   height: var(--size-page-button);
   border-radius: var(--radius-small);
@@ -927,18 +938,31 @@
     flex: 1;
   }
 
+  /* 세로로 쌓일 때도 높이를 지킨다(flex-basis auto) */
   .search {
-    flex: 1;
+    flex: 1 1 auto;
     min-width: 0;
   }
 
+  /* 폰: 번호 열 개와 화살표만 한 줄 가운데(쪽 크기 · 범위 글은 데스크톱) */
   .pager {
-    grid-template-columns: 1fr auto;
-    gap: var(--space-xs);
+    grid-template-columns: 1fr;
+    justify-items: center;
+    padding: var(--space-sm) 0;
   }
 
-  .pager__range {
+  .pager__range,
+  .pager__size {
     display: none;
+  }
+
+  .pager__pages {
+    gap: 0;
+  }
+
+  .pager__button {
+    min-width: 28px;
+    padding: 0;
   }
 
   .dialog__actions .btn {
@@ -1084,8 +1108,14 @@
 }
 
 /* ── 현황 v2(D1): 실패 수 · 접속 차트 · 두 칸 ─────────────── */
-.kpi__sub--bad {
+.kpi__sub--bad,
+.kpi__down {
   color: var(--color-danger);
+  font-weight: 600;
+}
+
+.kpi__up {
+  color: var(--color-good);
   font-weight: 600;
 }
 
@@ -1096,14 +1126,14 @@
   gap: var(--space-md);
 }
 
-.active {
+.active-card {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
   padding: 18px 22px;
 }
 
-.active__head {
+.active-card__head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1111,37 +1141,37 @@
   gap: 10px;
 }
 
-.active__nums {
+.active-card__nums {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-lg);
 }
 
-.active__nums span {
+.active-card__nums span {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.active__nums small {
+.active-card__nums small {
   font: var(--type-small);
   color: var(--color-hint);
 }
 
-.active__nums b {
+.active-card__nums b {
   font: 600 24px/32px var(--font-family);
   letter-spacing: -0.02em;
 }
 
-.active__nums b.is-up {
+.active-card__nums b.is-up {
   color: var(--color-good);
 }
 
-.active__nums b.is-down {
+.active-card__nums b.is-down {
   color: var(--color-danger);
 }
 
-.active__empty {
+.active-card__empty {
   padding: var(--space-xl) 0;
   font: var(--type-table);
   color: var(--color-hint);
@@ -1152,7 +1182,7 @@
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  height: 170px;
+  padding: 0 4px;
 }
 
 .bars--many {
@@ -1166,7 +1196,6 @@
   align-items: center;
   justify-content: flex-end;
   gap: 6px;
-  height: 100%;
   min-width: 0;
 }
 
@@ -1176,9 +1205,15 @@
   font-variant-numeric: tabular-nums;
 }
 
+.bars__track {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 120px;
+}
+
 .bars__bar {
   width: 100%;
-  max-height: 120px;
   border-radius: 6px 6px 2px 2px;
   background: var(--color-primary-light);
 }
@@ -1206,7 +1241,7 @@
   }
 
   /* 칸은 제목 아래 한 줄을 꽉 채우고 세 칸이 같은 폭 */
-  .active__head .seg {
+  .active-card__head .seg {
     width: 100%;
   }
 

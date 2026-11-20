@@ -28,7 +28,8 @@ describe('현황(D1)', () => {
     renderApp(<StatsPage />);
     await screen.findByRole('region', { name: t.kpi.accounts });
     expect(card(t.kpi.accounts).getByText('1,284')).toBeInTheDocument();
-    expect(card(t.kpi.accounts).getByText(t.accountsSub('32', '214'))).toBeInTheDocument();
+    expect(card(t.kpi.accounts).getByText(t.joinedUp('32'))).toHaveClass('kpi__up');
+    expect(screen.getByRole('region', { name: t.kpi.accounts })).toHaveTextContent(`${t.accountsToday} ${t.joinedUp('32')} · ${t.accountsWeek('214')}`);
     expect(card(t.kpi.nicknames).getByText('1,201')).toBeInTheDocument();
     expect(card(t.kpi.nicknames).getByText(t.ratioSub(94))).toBeInTheDocument();
     expect(card(t.kpi.reports).getByText('386')).toBeInTheDocument();
@@ -36,7 +37,8 @@ describe('현황(D1)', () => {
     expect(card(t.kpi.todaySky).getByText(t.todaySkySub('132', '280'))).toBeInTheDocument();
     expect(card(t.kpi.failures).getByText('3')).toBeInTheDocument();
     expect(card(t.kpi.failures).getByText(t.failuresSub('1', '2'))).toHaveClass('kpi__sub--bad');
-    expect(card(t.kpi.push).getByText(t.pushSub('1,908', '12'))).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: t.kpi.push })).toHaveTextContent(`${t.pushOk('1,908')} · ${t.pushFailed('12')}`);
+    expect(card(t.kpi.push).getByText(t.pushFailed('12'))).toHaveClass('kpi__down');
     expect(card(t.kpi.waiting).getByText('5')).toBeInTheDocument();
     expect(card(t.kpi.waiting).getByText(t.waitingSub(2))).toBeInTheDocument();
     expect(card(t.kpi.consents).getByText(t.consentsValue(62, 18))).toBeInTheDocument();

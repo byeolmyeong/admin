@@ -561,6 +561,11 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  font: 400 13px/17px var(--font-family);
+}
+
+.user-card__text .row-card__title {
+  margin-bottom: 2px;
 }
 
 .avatar--large {
@@ -681,6 +686,7 @@
 
 .textarea-box__input--short {
   min-height: 56px;
+  resize: none;
 }
 
 /* ── 푸시 발송(D7 · D14 · D28) ───────────────────── */
@@ -781,20 +787,44 @@
 }
 
 @media (max-width: 639px) {
-  .profile__actions {
-    width: 100%;
+  /* 폰 프로필(D5 폰): 아바타 위 · 이름 · 설명 · 조치 버튼 오른쪽 */
+  .profile {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-sm);
   }
 
-  .profile__actions .btn {
-    flex: 1;
+  .profile__actions {
+    justify-content: flex-end;
   }
 
   .kv {
     grid-template-columns: 100px 1fr;
   }
 
-  .kv__row {
+  /* 최근 활동은 폰에서도 두 칸(시각 · 내용) 한 줄씩 */
+  .kv--recent {
     grid-template-columns: 1fr;
-    gap: 2px;
+  }
+
+  .kv__row {
+    grid-template-columns: 150px 1fr;
+    gap: var(--space-sm);
+  }
+
+  .compose__foot .btn {
+    width: 100%;
+  }
+
+  /* 발송 내역: 카드 속 한 줄씩(테두리 없이) */
+  .push-history .stack {
+    gap: 0;
+    padding: 0 22px 18px;
+  }
+
+  .push-history .row-card {
+    padding: var(--space-xs) 0;
+    border: 0;
+    box-shadow: none;
   }
 }

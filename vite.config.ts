@@ -7,6 +7,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // 화면 전체를 그리며 한 글자씩 적는 테스트(첫 로그인 비밀번호 · 푸시 발송 등)는 기본 5초에 걸린다.
+    testTimeout: 15_000,
     restoreMocks: true,
     unstubGlobals: true,
     unstubEnvs: true,

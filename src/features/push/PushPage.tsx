@@ -188,7 +188,7 @@ export function PushPage() {
                   card={(e) => (
                     <>
                       <span className="row-card__title">{e.title}</span>
-                      <span>{[formatKst(e.sentAt), strings.users.people(n(e.recipients)), e.failed === null ? t.sending : `${t.columns.result} ${t.result(n(e.succeeded), n(e.failed))}`].join(' · ')}</span>
+                      <span>{[formatKst(e.sentAt), strings.users.people(n(e.recipients)), e.failed === null ? t.sending : strings.stats.pushFailed(n(e.failed))].join(' · ')}</span>
                     </>
                   )}
                 />

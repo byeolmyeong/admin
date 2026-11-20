@@ -126,7 +126,6 @@ export function UserListPage() {
               allLabel={t.providerAll}
               value={provider}
               options={PROVIDERS.map((value) => ({ value, label: providerLabel(value) ?? value }))}
-              variant={phone ? 'field' : 'chip'}
               onChange={(v) => list.set({ provider: v })}
             />
             <DateRangeSelect
