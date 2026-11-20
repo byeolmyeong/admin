@@ -43,6 +43,13 @@ npm test           # Vitest (서버 호출은 fetch 를 흉내 낸다)
 npm run build      # dist/ 에 정적 파일
 ```
 
+## 배포
+
+- 버셀 프로젝트 `byeolmyeong-admin`(팀 swyp)이 `main` 만 운영으로 올린다 → https://admin.byeolmyeong.com. 어드민은 스테이징이 없다(소유자 2026-11-20 "어드민은 스테이징 필요없고 그냥 운영만 있어도 돼").
+- `develop` · 작업 브랜치는 버셀이 빌드하지 않는다(`vercel.json` 의 `ignoreCommand`). 고친 것은 `develop` 에 합친 뒤 `develop` → `main` PR 로 올린다(합치기 = 운영 배포, 소유자 확인).
+- 서버 주소 `VITE_API_URL` 은 버셀 Production 환경 변수 `https://api.byeolmyeong.com`. 서버 운영 `.env` 의 `ADMIN_ALLOWED_ORIGINS` 가 `https://admin.byeolmyeong.com` 이다.
+- 주소 하나라 새로 고침 · 깊은 주소는 `vercel.json` 의 되돌려 쓰기(모든 경로 → `index.html`)로 연다. 검색에 걸리지 않게 `X-Robots-Tag: noindex`.
+
 ## 화면과 주소
 
 | 주소 | 화면 |
