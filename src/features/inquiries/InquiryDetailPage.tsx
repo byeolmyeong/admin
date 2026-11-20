@@ -2,6 +2,7 @@ import { useCallback, useId, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { LoadError, Loading } from '../../components/Feedback';
 import { EmptyState } from '../../components/EmptyState';
+import { isSectionShown } from '../../app/sections';
 import { MoreLink } from '../../components/MoreLink';
 import { PageHeader } from '../../components/PageHeader';
 import { Pill } from '../../components/Pill';
@@ -73,13 +74,18 @@ function Owner({ inquiry }: { inquiry: Inquiry }) {
           {joined && <span>{joined}</span>}
         </span>
       )}
-      <span className="inquiry__owner-link">
-        {owner ? (
-          <MoreLink to={`/users/${encodeURIComponent(owner.userId)}`}>{t.userDetail}</MoreLink>
-        ) : (
+      {/* 사용자 구역을 숨긴 운영(VITE_HIDDEN_SECTIONS=users)에서는 링크 없이 글로만(소유자 2026-11-20) */}
+      {owner ? (
+        isSectionShown('/users') && (
+          <span className="inquiry__owner-link">
+            <MoreLink to={`/users/${encodeURIComponent(owner.userId)}`}>{t.userDetail}</MoreLink>
+          </span>
+        )
+      ) : (
+        <span className="inquiry__owner-link">
           <MoreLink to={`/audit-logs?actorType=USER&actorRef=${encodeURIComponent(inquiry.ownerRef)}`}>{t.ownerActions}</MoreLink>
-        )}
-      </span>
+        </span>
+      )}
     </div>
   );
 }
