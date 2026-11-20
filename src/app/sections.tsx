@@ -7,7 +7,10 @@ import { AuditLogPage } from '../features/audit/AuditLogPage';
 import { FaqPage } from '../features/faqs/FaqPage';
 import { InquiryDetailPage } from '../features/inquiries/InquiryDetailPage';
 import { InquiryListPage } from '../features/inquiries/InquiryListPage';
+import { PushPage } from '../features/push/PushPage';
 import { StatsPage } from '../features/stats/StatsPage';
+import { UserDetailPage } from '../features/users/UserDetailPage';
+import { UserListPage } from '../features/users/UserListPage';
 
 /** 메뉴의 묶음(결정 003 의 1). 묶음이 없는 구역(현황)은 맨 위에 홀로 선다. */
 export type SectionGroup = 'support' | 'content' | 'operations';
@@ -41,10 +44,19 @@ export const sections: Section[] = [
       { path: '/inquiries/:id', element: <InquiryDetailPage /> },
     ],
   },
-  // 서버 결정 043 의 사용자 경로(S⑪)가 생기면 화면을 붙이고 hidden 을 뗀다(계획 D③).
-  { to: '/users', label: nav.users, icon: 'user', group: 'support', hidden: true, routes: [] },
-  // 서버 결정 043 의 푸시 발송 경로(S10-5)가 생기면 화면을 붙이고 hidden 을 뗀다(계획 D②).
-  { to: '/push', label: nav.push, icon: 'bell', group: 'content', hidden: true, routes: [] },
+  // 서버 결정 043 의 사용자 경로는 S⑪ — 그 전에는 목록을 불러오지 못했다고 알린다(소유자 "보드 그대로 지금 다").
+  {
+    to: '/users',
+    label: nav.users,
+    icon: 'user',
+    group: 'support',
+    routes: [
+      { path: '/users', element: <UserListPage /> },
+      { path: '/users/:id', element: <UserDetailPage /> },
+    ],
+  },
+  // 서버 결정 043 의 푸시 발송 경로는 S10-5 — 그 전에는 대상 수 · 내역이 "—" 이다.
+  { to: '/push', label: nav.push, icon: 'bell', group: 'content', routes: [{ path: '/push', element: <PushPage /> }] },
   { to: '/faqs', label: nav.faqs, icon: 'help', group: 'content', routes: [{ path: '/faqs', element: <FaqPage /> }] },
   { to: '/app-config', label: nav.appConfig, icon: 'settings', group: 'operations', routes: [{ path: '/app-config', element: <AppConfigPage /> }] },
   { to: '/admins', label: nav.admins, icon: 'key', group: 'operations', routes: [{ path: '/admins', element: <AdminsPage /> }] },

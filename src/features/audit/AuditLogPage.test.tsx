@@ -103,8 +103,9 @@ describe('감사 로그(D10)', () => {
     expect(third.getByRole('button', { name: t.filterByActor('사용자 0123') })).toBeInTheDocument();
     expect(third.getByText(chip('관계', '연애'), { exact: false })).toBeInTheDocument();
 
-    expect(lastQuery(calls)).toBe('page=0&size=20');
-    expect(screen.getByText(strings.pager.range(3, 1, 3))).toBeInTheDocument();
+    expect(lastQuery(calls)).toBe('from=2026-11-20&to=2026-11-20&page=0&size=20');
+    expect(screen.getByText(t.range('오늘', 3, 1, 3))).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: `${t.dateLabel} · 오늘` })).toBeInTheDocument();
     expect(screen.getByText(t.headNote)).toBeInTheDocument();
   });
 
@@ -156,16 +157,18 @@ describe('감사 로그(D10)', () => {
 
     await user.click(actorSeg().getByRole('button', { name: t.actorTypes.ADMIN }));
     await rows();
-    expect(lastQuery(calls)).toBe('actorType=ADMIN&page=0&size=20');
+    expect(lastQuery(calls)).toBe('actorType=ADMIN&from=2026-11-20&to=2026-11-20&page=0&size=20');
     expect(where()).toBe('/audit-logs?actorType=ADMIN');
 
     await user.click(screen.getByRole('button', { name: t.actionLabel }));
     await user.click(screen.getByRole('option', { name: t.actions.INQUIRY_UPDATED }));
     await rows();
-    expect(lastQuery(calls)).toBe('actorType=ADMIN&action=INQUIRY_UPDATED&page=0&size=20');
+    expect(lastQuery(calls)).toBe('actorType=ADMIN&action=INQUIRY_UPDATED&from=2026-11-20&to=2026-11-20&page=0&size=20');
 
-    await user.click(screen.getByRole('button', { name: t.dateLabel }));
+    await user.click(screen.getByRole('button', { name: `${t.dateLabel} · 오늘` }));
+    await user.clear(screen.getByLabelText(strings.picker.start));
     await user.type(screen.getByLabelText(strings.picker.start), '2026.11.10');
+    await user.clear(screen.getByLabelText(strings.picker.end));
     await user.type(screen.getByLabelText(strings.picker.end), '2026.11.12');
     await user.tab();
     await user.click(screen.getByRole('button', { name: strings.picker.apply }));
@@ -173,9 +176,16 @@ describe('감사 로그(D10)', () => {
     expect(lastQuery(calls)).toBe('actorType=ADMIN&action=INQUIRY_UPDATED&from=2026-11-10&to=2026-11-12&page=0&size=20');
     expect(screen.getByRole('button', { name: `${t.dateLabel} · 2026.11.10 ~ 11.12` })).toBeInTheDocument();
 
-    await user.type(screen.getByRole('searchbox', { name: t.searchLabel }), ' Root-Admin ');
-    await vi.waitFor(() => expect(lastQuery(calls)).toBe('actorType=ADMIN&action=INQUIRY_UPDATED&from=2026-11-10&to=2026-11-12&actorRef=Root-Admin&page=0&size=20'));
-    expect(where()).toBe('/audit-logs?actorType=ADMIN&action=INQUIRY_UPDATED&from=2026-11-10&to=2026-11-12&actorRef=Root-Admin');
+    await user.type(screen.getByRole('searchbox', { name: t.searchLabel }), ' 새벽별 ');
+    await vi.waitFor(() => expect(lastQuery(calls)).toBe('q=%EC%83%88%EB%B2%BD%EB%B3%84&actorType=ADMIN&action=INQUIRY_UPDATED&from=2026-11-10&to=2026-11-12&page=0&size=20'));
+  });
+
+  it('한 계정을 찾을 때(찾기 · 활동 기록 링크)는 날짜를 오늘로 묶지 않는다', async () => {
+    const { calls } = mockFetch({ 'GET /admin/me': me, [LIST]: page() });
+    renderApp(tree, { route: '/audit-logs?actorType=USER&actorRef=0123456789ab' });
+    await rows();
+    expect(lastQuery(calls)).toBe('actorType=USER&actorRef=0123456789ab&page=0&size=20');
+    expect(screen.getByText(t.range(t.allDates, 1, 1, 1))).toBeInTheDocument();
   });
 
   it('주소의 조건으로 받고 버튼 · 칸에 그 값을 보인다', async () => {
@@ -194,7 +204,7 @@ describe('감사 로그(D10)', () => {
     const { calls } = mockFetch({ 'GET /admin/me': me, [LIST]: page() });
     renderApp(tree, { route: '/audit-logs?actorType=admin&action=NOPE&from=2026-02-30&to=2026-11-1&actorRef=%20&page=-1' });
     await rows();
-    expect(lastQuery(calls)).toBe('page=0&size=20');
+    expect(lastQuery(calls)).toBe('from=2026-11-20&to=2026-11-20&page=0&size=20');
   });
 
   it('줄의 계정을 누르면 그 actor.ref 로 거른다', async () => {
@@ -207,7 +217,7 @@ describe('감사 로그(D10)', () => {
     expect(screen.getByRole('searchbox', { name: t.searchLabel })).toHaveValue('0123456789ab');
   });
 
-  it('처음부터 비면 안내만, 거른 결과가 비면 초기화 버튼', async () => {
+  it('날짜를 고르지 않았으면 오늘 것만(D10 "날짜 · 오늘"), 처음부터 비면 안내만 · 거른 결과가 비면 초기화 버튼', async () => {
     const { routes, calls } = mockFetch({ 'GET /admin/me': me, [LIST]: page([]) });
     const view = renderApp(tree, { route: '/audit-logs' });
     expect(await screen.findByText(t.empty.title)).toBeInTheDocument();
@@ -217,7 +227,7 @@ describe('감사 로그(D10)', () => {
     renderApp(tree, { route: '/audit-logs?actorType=ADMIN' });
     expect(await screen.findByText(t.emptyFiltered.title)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: strings.empty.reset }));
-    await vi.waitFor(() => expect(lastQuery(calls)).toBe('page=0&size=20'));
+    await vi.waitFor(() => expect(lastQuery(calls)).toBe('from=2026-11-20&to=2026-11-20&page=0&size=20'));
   });
 
   it.each([

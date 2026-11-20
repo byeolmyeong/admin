@@ -29,37 +29,30 @@ const inquiriesLink = new RegExp(`^${t.nav.inquiries}`);
 const heading = (name: string) => screen.findByRole('heading', { level: 1, name });
 
 describe('화면 틀', () => {
-  it('왼쪽 메뉴는 묶음 넷: 현황 / 고객 지원 — 문의 / 소식 · 글 — 자주 묻는 질문 / 운영 설정 — 앱 설정 · 관리자 · 감사 로그', async () => {
+  it('왼쪽 메뉴는 묶음 넷: 현황 / 고객 지원 — 문의 · 사용자 / 소식 · 글 — 푸시 발송 · 자주 묻는 질문 / 운영 설정 — 앱 설정 · 관리자 · 감사 로그', async () => {
     server();
     renderApp(<AppRoutes />);
     const menu = nav();
     expect(menu.getAllByRole('link').map((a) => a.querySelector('.nav__label')?.textContent)).toEqual([
       t.nav.stats,
       t.nav.inquiries,
+      t.nav.users,
+      t.nav.push,
       t.nav.faqs,
       t.nav.appConfig,
       t.nav.admins,
       t.nav.auditLogs,
     ]);
     expect(menu.getAllByText(/./, { selector: '.nav__group' }).map((g) => g.textContent)).toEqual([t.groups.support, t.groups.content, t.groups.operations]);
-    // 서버 경로가 없는 구역(사용자 · 푸시 발송)은 숨긴다(계획 D⓪)
-    expect(menu.queryByText(t.nav.users)).not.toBeInTheDocument();
-    expect(menu.queryByText(t.nav.push)).not.toBeInTheDocument();
     const account = within(screen.getByRole('group', { name: t.accountLabel }));
     expect(await account.findByText(t.who(admin.loginId))).toBeInTheDocument();
     expect(account.getByRole('button', { name: t.logout })).toBeInTheDocument();
   });
 
-  it('메뉴와 라우트는 구역 목록에서 나오고, 숨긴 구역은 라우트도 없다', () => {
+  it('메뉴와 라우트는 구역 목록에서 나온다(보드 그대로 — 여덟 구역 모두 보인다)', () => {
     expect(sections.map((s) => s.to)).toEqual(['/stats', '/inquiries', '/users', '/push', '/faqs', '/app-config', '/admins', '/audit-logs']);
-    expect(sections.filter((s) => s.hidden).map((s) => s.to)).toEqual(['/users', '/push']);
+    expect(visibleSections()).toHaveLength(8);
     for (const section of visibleSections()) expect(section.routes.length).toBeGreaterThan(0);
-  });
-
-  it('숨긴 구역의 주소는 현황으로 보낸다', async () => {
-    server();
-    renderApp(<AppRoutes />, { route: '/users' });
-    expect(await heading(strings.stats.title)).toBeInTheDocument();
   });
 
   it('문의 옆에 답변 대기 수(현황의 새 문의 수)를 보이고, 없으면 숫자를 감춘다', async () => {

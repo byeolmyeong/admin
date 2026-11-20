@@ -1,4 +1,4 @@
-import type { Admin, AdminAccount, AppConfig, AuditLog, Faq, Inquiry, Maintenance, PlatformConfig, Stats } from '../lib/api/types';
+import type { Admin, AdminAccount, AppConfig, AuditLog, Faq, Inquiry, Maintenance, PlatformConfig, Stats, UserDetail, UserRow } from '../lib/api/types';
 
 export const admin: Admin = { id: '11111111-1111-4111-8111-111111111111', loginId: 'owner', name: '김관리' };
 
@@ -108,4 +108,35 @@ export const activeStats = (range = 'week') => ({
   total: 1020,
   average: 148,
   previousTotal: 911,
+});
+
+export const userRow = (over: Partial<UserRow> = {}): UserRow => ({
+  id: 'uuuuuuuu-uuuu-4uuu-8uuu-uuuuuuuuuuu1',
+  nickname: '새벽별',
+  profileNo: 1,
+  emailMasked: 'dawn****@kakao.com',
+  provider: 'KAKAO',
+  joinedAt: '2026-11-08T05:20:05Z',
+  lastSeenAt: '2026-11-19T23:12:44Z',
+  reports: { me: 'DONE', timing: 'DONE' },
+  status: 'ACTIVE',
+  ...over,
+});
+
+export const userDetail = (over: Partial<UserDetail> = {}): UserDetail => ({
+  ...userRow(),
+  consents: { termsVersion: '2026-11-19', privacyVersion: '2026-11-19', pushAt: '2026-11-08T05:20:05Z', marketingAt: null },
+  todaySky: { on: true, time: '08:00' },
+  birth: { registered: true, hasTime: true, hasPlace: true },
+  generations: [
+    { kind: 'NICKNAME', status: 'DONE', at: '2026-11-08T05:22:10Z' },
+    { kind: 'REPORT_ME', status: 'DONE', at: '2026-11-09T13:10:36Z' },
+    { kind: 'REPORT_TIMING', status: 'FAILED', at: '2026-11-20T05:02:07Z' },
+    { kind: 'TODAY_SKY', status: 'PREBUILT', at: '2026-11-19T22:30:00Z' },
+  ],
+  devices: [{ platform: 'ios', appVersion: '1.0.2', lastSeenAt: '2026-11-19T23:12:44Z' }],
+  inquiries: [{ id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', category: 'BUG', status: 'NEW', createdAt: '2026-11-17T23:42:13Z', excerpt: '아침에 오늘의 하늘 알림이 오지 않아요.' }],
+  recent: [{ at: '2026-11-17T23:42:13Z', action: 'INQUIRY_SUBMITTED', detail: '오류' }],
+  suspension: null,
+  ...over,
 });

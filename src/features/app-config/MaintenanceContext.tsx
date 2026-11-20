@@ -53,7 +53,7 @@ export const useMaintenance = (): MaintenanceValue => useContext(MaintenanceCont
 
 /**
  * 점검이 켜져 있는 동안 모든 화면 위에 보이는 노란 띠(D24).
- * 켠 때는 지금 계약의 마지막 수정(updatedAt · updatedBy)이다 — 서버 결정 043 의 7(startedAt · startedBy)이 생기면 그 값으로 바꾼다.
+ * 켠 때 · 켠 관리자는 결정 043 의 7(startedAt · startedBy), 서버가 아직 주지 않으면 마지막 수정(updatedAt · updatedBy).
  */
 export function MaintenanceBanner() {
   const { maintenance } = useMaintenance();
@@ -63,7 +63,9 @@ export function MaintenanceBanner() {
     <div className="banner" role="status">
       <span className="banner__dot" aria-hidden="true" />
       <strong className="banner__title">{t.title}</strong>
-      <span className="banner__body">{t.body(formatKst(maintenance.updatedAt), maintenance.updatedBy?.name ?? null)}</span>
+      <span className="banner__body">
+        {t.body(formatKst(maintenance.startedAt ?? maintenance.updatedAt), (maintenance.startedBy ?? maintenance.updatedBy)?.name ?? null)}
+      </span>
       <Link className="banner__link" to="/app-config">
         {t.link}
       </Link>

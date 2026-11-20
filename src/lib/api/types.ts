@@ -104,6 +104,13 @@ export const AUDIT_ADMIN_ACTIONS = [
   'FAQ_REORDERED',
   'APP_CONFIG_UPDATED',
   'MAINTENANCE_UPDATED',
+  // 결정 043 의 8
+  'ADMIN_PASSWORD_REISSUED',
+  'USER_SUSPENDED',
+  'USER_UNSUSPENDED',
+  'USER_DELETED_BY_ADMIN',
+  'GENERATION_RETRIED',
+  'PUSH_EVENT_SENT',
 ] as const;
 
 /** 계약 "감사 기록" 의 행동 표 그대로(앱 사용자). */

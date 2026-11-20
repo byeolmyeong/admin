@@ -6,12 +6,13 @@ import { actionLabel, actorTypeLabel, detailChips, outcomeLabel, targetLabel } f
 const chip = strings.audit.detail.chip;
 
 describe('감사 로그의 문구', () => {
-  it('계약의 행동 코드는 서른두 개다(관리자 18 · 사용자 14 — 약관 동의 · 푸시 수신 동의 변경 포함)', () => {
-    expect(AUDIT_ADMIN_ACTIONS).toHaveLength(18);
+  it('계약의 행동 코드는 서른여덟 개다(관리자 24 — 결정 043 의 8 포함 · 사용자 14)', () => {
+    expect(AUDIT_ADMIN_ACTIONS).toHaveLength(24);
+    expect(AUDIT_ADMIN_ACTIONS).toContain('PUSH_EVENT_SENT');
     expect(AUDIT_USER_ACTIONS).toHaveLength(14);
     expect(AUDIT_USER_ACTIONS).toContain('TERMS_AGREED');
     expect(AUDIT_USER_ACTIONS).toContain('PUSH_CONSENT_CHANGED');
-    expect(new Set([...AUDIT_ADMIN_ACTIONS, ...AUDIT_USER_ACTIONS]).size).toBe(32);
+    expect(new Set([...AUDIT_ADMIN_ACTIONS, ...AUDIT_USER_ACTIONS]).size).toBe(38);
   });
 
   it.each([...AUDIT_ADMIN_ACTIONS, ...AUDIT_USER_ACTIONS])('%s 에 한국어 이름이 있다', (code) => {

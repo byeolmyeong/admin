@@ -16,7 +16,7 @@ import { useIsPhone } from '../../components/overlay';
 import { strings } from '../../content/strings';
 import { AUDIT_ACTOR_TYPES, AUDIT_ADMIN_ACTIONS, AUDIT_USER_ACTIONS } from '../../lib/api/types';
 import type { AuditLog } from '../../lib/api/types';
-import { kstToday } from '../../lib/dates';
+import { kstToday, rangeLabel } from '../../lib/dates';
 import { errorMessage } from '../../lib/errorMessage';
 import { formatKst } from '../../lib/text';
 import { useListParams } from '../../lib/useListParams';
@@ -75,14 +75,21 @@ export function AuditLogPage() {
   const list = useListParams();
   const actorType = oneOf(list.get('actorType'), AUDIT_ACTOR_TYPES);
   const action = oneOf(list.get('action'), ACTIONS);
-  const from = dateOf(list.get('from'));
-  const to = dateOf(list.get('to'));
+  const today = kstToday();
+  const fromUrl = dateOf(list.get('from'));
+  const toUrl = dateOf(list.get('to'));
   const actorRef = list.get('actorRef').trim();
+  const q = list.get('q').trim();
+  // 날짜를 고르지 않았으면 오늘(D10 — "날짜 · 오늘"). 다만 한 계정을 찾을 때(찾기 · 활동 기록 링크)는 보관 기간 전체.
+  const dateChosen = fromUrl !== '' || toUrl !== '';
+  const allDates = !dateChosen && (actorRef !== '' || q !== '');
+  const from = dateChosen ? fromUrl : allDates ? '' : today;
+  const to = dateChosen ? toUrl : allDates ? '' : today;
   const { page, size } = list;
-  const filtered = actorType !== '' || action !== '' || from !== '' || to !== '' || actorRef !== '';
+  const filtered = actorType !== '' || action !== '' || dateChosen || actorRef !== '' || q !== '';
 
   const { state, reload } = useLoad(
-    useCallback(() => api.listAuditLogs({ actorType, action, from, to, actorRef, page, size }), [api, actorType, action, from, to, actorRef, page, size]),
+    useCallback(() => api.listAuditLogs({ q, actorType, action, from, to, actorRef, page, size }), [api, q, actorType, action, from, to, actorRef, page, size]),
   );
 
   const onActor = (ref: string) => list.set({ actorRef: ref });
@@ -122,10 +129,10 @@ export function AuditLogPage() {
           <Segmented label={t.actorTypeLabel} value={actorType} options={ACTOR_OPTIONS} onChange={(value) => list.set({ actorType: value })} />
           <span className="tools__group">
             <Select label={t.actionLabel} allLabel={t.all} value={action} options={ACTION_OPTIONS} variant={phone ? 'field' : 'chip'} onChange={(value) => list.set({ action: value })} />
-            <DateRangeSelect label={t.dateLabel} today={kstToday()} value={from && to ? { from, to } : null} onChange={(range) => list.set({ from: range.from, to: range.to })} />
+            <DateRangeSelect label={t.dateLabel} today={today} value={from && to ? { from, to } : null} onChange={(range) => list.set({ from: range.from, to: range.to })} />
           </span>
           <span className="tools__end">
-            <SearchField label={t.searchLabel} placeholder={t.searchPlaceholder} value={actorRef} onCommit={(value) => list.set({ actorRef: value.trim() })} />
+            <SearchField label={t.searchLabel} placeholder={t.searchPlaceholder} value={q || actorRef} onCommit={(value) => list.set({ q: value.trim(), actorRef: '' })} />
           </span>
         </div>
 
@@ -155,7 +162,14 @@ export function AuditLogPage() {
                 )}
               />
             )}
-            <Pager total={data.total} page={page} size={size} onPage={list.setPage} onSize={list.setSize} />
+            <Pager
+              total={data.total}
+              page={page}
+              size={size}
+              onPage={list.setPage}
+              onSize={list.setSize}
+              range={t.range(from && to ? rangeLabel({ from, to }, today) : t.allDates, data.total, data.total === 0 ? 0 : page * size + 1, Math.min(data.total, (page + 1) * size))}
+            />
           </div>
         )}
       </div>
