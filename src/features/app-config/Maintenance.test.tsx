@@ -25,14 +25,14 @@ const card = () => within(screen.getByRole('form', { name: t.title }));
 const toggle = () => card().getByRole('switch', { name: t.active });
 const save = () => userEvent.click(card().getByRole('button', { name: strings.common.save }));
 
-describe('앱 설정 — 점검', () => {
-  it('지금 상태 · 안내 문구 · 마지막 수정과 무엇이 막히는지를 보여 준다', async () => {
+describe('앱 설정 — 점검(D6)', () => {
+  it('지금 상태 표 · 점검 모드 스위치(설명) · 안내 문구', async () => {
     await open(maintenance({ active: true, message: '새벽 2시부터 4시까지 점검해요.', updatedBy: by }));
     expect(card().getByText(t.on)).toBeInTheDocument();
     expect(toggle()).toBeChecked();
+    expect(toggle()).toHaveAccessibleDescription(t.activeHelp);
     expect(card().getByLabelText(t.message)).toHaveValue('새벽 2시부터 4시까지 점검해요.');
-    expect(card().getByText(strings.appConfig.updated(admin.name, '2026-11-12 13:05'))).toBeInTheDocument();
-    expect(card().getByText(t.note)).toBeInTheDocument();
+    expect(card().getByLabelText(t.message)).toHaveAttribute('placeholder', t.messagePlaceholder);
   });
 
   it('켜기는 반드시 묻는다: 취소하면 보내지 않고, 확인하면 두 키를 보낸다', async () => {
@@ -43,17 +43,15 @@ describe('앱 설정 — 점검', () => {
     await save();
     const dialog = within(screen.getByRole('alertdialog', { name: t.confirmTitle }));
     expect(dialog.getByText(t.confirmBody)).toBeInTheDocument();
-    expect(t.confirmBody).toMatch(/모든 사용자가 앱과 웹을 쓸 수 없게/);
     await userEvent.click(dialog.getByRole('button', { name: strings.common.cancel }));
     expect(callsTo(calls, PUT)).toHaveLength(0);
     expect(card().getByText(t.off)).toBeInTheDocument();
 
     await save();
     await userEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: t.confirmLabel }));
-    expect(await card().findByText(t.savedOn)).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(t.savedOn);
     expect(callsTo(calls, PUT)[0]?.body).toEqual({ active: true, message: '잠시 점검해요.' });
     expect(card().getByText(t.on)).toBeInTheDocument();
-    expect(card().getByText(strings.appConfig.updated(admin.name, '2026-11-13 02:00'))).toBeInTheDocument();
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 
@@ -61,7 +59,7 @@ describe('앱 설정 — 점검', () => {
     const { calls } = await open(maintenance({ active: true, message: '점검해요.' }));
     await userEvent.click(toggle());
     await save();
-    expect(await card().findByText(t.savedOff)).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(t.savedOff);
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     expect(callsTo(calls, PUT)[0]?.body).toEqual({ active: false, message: '점검해요.' });
     expect(card().getByText(t.off)).toBeInTheDocument();
@@ -71,7 +69,7 @@ describe('앱 설정 — 점검', () => {
     const { calls } = await open(maintenance({ active: true, message: '점검해요.' }));
     await userEvent.clear(card().getByLabelText(t.message));
     await save();
-    expect(await card().findByText(t.saved)).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(t.saved);
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     expect(callsTo(calls, PUT)[0]?.body).toEqual({ active: true, message: null });
   });
@@ -87,11 +85,11 @@ describe('앱 설정 — 점검', () => {
     expect(callsTo(calls, PUT)).toHaveLength(0);
   });
 
-  it('서버가 INVALID_MESSAGE 로 거절하면 알리고 상태는 그대로 둔다', async () => {
+  it('서버가 INVALID_MESSAGE 로 거절하면 짧은 알림으로 알리고 상태 · 글은 그대로 둔다', async () => {
     await open(maintenance(), { status: 400, body: { error: 'INVALID_MESSAGE' } });
     await userEvent.type(card().getByLabelText(t.message), '글');
     await save();
-    expect(await card().findByRole('alert')).toHaveTextContent(t.errors.INVALID_MESSAGE);
+    expect(await screen.findByRole('alert')).toHaveTextContent(t.errors.INVALID_MESSAGE);
     expect(card().getByText(t.off)).toBeInTheDocument();
     expect(card().getByLabelText(t.message)).toHaveValue('글');
   });

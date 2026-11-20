@@ -1,6 +1,5 @@
-import { useEffect, useId, useRef, useState } from 'react';
-import type { FormEvent } from 'react';
-import { Notice } from '../../components/Feedback';
+import { useState } from 'react';
+import { FormDialog } from '../../components/FormDialog';
 import { TextField } from '../../components/TextField';
 import { strings } from '../../content/strings';
 import type { AdminAccount } from '../../lib/api/types';
@@ -16,23 +15,18 @@ interface Props {
   onCancel: () => void;
 }
 
-/** 다른 관리자의 비밀번호를 다시 정하는 창. 규칙은 관리자 만들기와 같다. 열리면 첫 칸에 초점이 가고 Esc 로 닫힌다. */
+/**
+ * 다른 관리자의 비밀번호를 다시 정하는 창(지금 계약 — 결정 018). 규칙은 관리자 추가와 같다.
+ * 서버 결정 043 의 "재발급"(서버가 임시 비밀번호를 만든다)이 생기면 계획 D③ 에서 바꾼다.
+ */
 export function ResetPasswordDialog({ target, onDone, onCancel }: Props) {
   const { api } = useAuth();
-  const titleId = useId();
-  const formRef = useRef<HTMLFormElement>(null);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [errors, setErrors] = useState<{ password?: string; confirm?: string; form?: string }>({});
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    formRef.current?.querySelector('input')?.focus();
-  }, []);
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (busy) return;
+  const submit = async () => {
     const problem = passwordProblem(password);
     const found = {
       password: problem === null ? undefined : strings.passwordRule[problem],
@@ -55,43 +49,9 @@ export function ResetPasswordDialog({ target, onDone, onCancel }: Props) {
   };
 
   return (
-    <div className="dialog-backdrop">
-      <form
-        className="dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        ref={formRef}
-        onSubmit={submit}
-        noValidate
-        onKeyDown={(e) => {
-          if (e.key === 'Escape' && !busy) onCancel();
-        }}
-      >
-        <h2 className="dialog__title" id={titleId}>
-          {t.title(target.name)}
-        </h2>
-        <p className="dialog__body">{t.note}</p>
-        <TextField
-          label={t.password}
-          value={password}
-          onChange={setPassword}
-          type="password"
-          help={strings.passwordRule.help}
-          error={errors.password}
-          autoComplete="new-password"
-        />
-        <TextField label={t.confirm} value={confirm} onChange={setConfirm} type="password" error={errors.confirm} autoComplete="new-password" />
-        {errors.form && <Notice tone="error">{errors.form}</Notice>}
-        <div className="dialog__actions">
-          <button type="button" className="btn btn--secondary" onClick={onCancel} disabled={busy}>
-            {strings.common.cancel}
-          </button>
-          <button type="submit" className="btn btn--primary" disabled={busy}>
-            {busy ? strings.common.saving : t.submit}
-          </button>
-        </div>
-      </form>
-    </div>
+    <FormDialog title={t.title(target.loginId)} note={t.note} submitLabel={t.submit} busy={busy} onSubmit={submit} onCancel={onCancel}>
+      <TextField label={t.password} value={password} onChange={setPassword} type="password" help={strings.passwordRule.help} error={errors.password} autoComplete="new-password" />
+      <TextField label={t.confirm} value={confirm} onChange={setConfirm} type="password" error={errors.confirm ?? errors.form} autoComplete="new-password" />
+    </FormDialog>
   );
 }

@@ -113,6 +113,8 @@ export const AUDIT_USER_ACTIONS = [
   'SHARE_DELETED',
   'INQUIRY_SUBMITTED',
   'ACCOUNT_DELETED',
+  'TERMS_AGREED',
+  'PUSH_CONSENT_CHANGED',
 ] as const;
 
 /** label 은 보여 줄 글, ref 는 actorRef 조건에 그대로 넣는 값 */

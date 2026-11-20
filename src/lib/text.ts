@@ -10,22 +10,6 @@ export const oneLine = (text: string, max: number): string => {
   return points.length <= max ? points.join('') : `${points.slice(0, max).join('')}…`;
 };
 
-const seoul = new Intl.DateTimeFormat('sv-SE', {
-  timeZone: 'Asia/Seoul',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-  hourCycle: 'h23',
-});
-
-/** 서버의 UTC 시각 글자를 한국 시간 `YYYY-MM-DD HH:mm` 으로. 읽을 수 없으면 받은 그대로. */
-export const formatDateTime = (iso: string): string => {
-  const time = Date.parse(iso);
-  return Number.isNaN(time) ? iso : seoul.format(time);
-};
-
 const seoulParts = new Intl.DateTimeFormat('en-US', {
   timeZone: 'Asia/Seoul',
   year: 'numeric',

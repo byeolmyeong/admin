@@ -73,7 +73,7 @@ describe('화면 틀', () => {
     server({ 'GET /admin/stats': { status: 200, body: stats({ inquiries: { total: 3, byStatus: { NEW: 0, IN_PROGRESS: 0, DONE: 3 } } }) } });
     renderApp(<AppRoutes />);
     await heading(strings.stats.title);
-    await screen.findAllByText(strings.stats.groups.inquiries);
+    await screen.findAllByText(strings.stats.kpi.waiting);
     expect(nav().queryByText(t.waiting(0))).not.toBeInTheDocument();
   });
 
@@ -127,7 +127,7 @@ describe('화면 틀', () => {
     await user.click(nav().getByRole('link', { name: inquiriesLink }));
     expect(await heading(strings.inquiries.title)).toBeInTheDocument();
     await user.click(await screen.findByRole('link', { name: /리포트가 열리지 않아요/ }));
-    expect(await heading(strings.inquiries.detail.title)).toBeInTheDocument();
+    expect(await screen.findByLabelText(strings.inquiries.detail.memo)).toBeInTheDocument();
     expect(nav().getByRole('link', { name: inquiriesLink })).toHaveAttribute('aria-current', 'page');
     await user.click(nav().getByRole('link', { name: t.nav.faqs }));
     expect(await heading(strings.faqs.title)).toBeInTheDocument();
@@ -142,8 +142,9 @@ describe('화면 틀', () => {
   it('주소로 바로 들어간다: 문의 상세', async () => {
     server();
     renderApp(<AppRoutes />, { route: `/inquiries/${one.id}` });
-    expect(await heading(strings.inquiries.detail.title)).toBeInTheDocument();
+    expect(await heading(strings.inquiries.title)).toBeInTheDocument();
     expect(await screen.findByText('0123456789ab')).toBeInTheDocument();
+    expect(screen.getByLabelText(strings.inquiries.detail.memo)).toBeInTheDocument();
   });
 
   it('문의 상세의 "이 계정의 행동 보기" 는 그 계정으로 거른 감사 로그를 연다', async () => {
@@ -280,7 +281,7 @@ describe('점검 알림', () => {
     const again = within(await screen.findByRole('form', { name: m.title }));
     await user.click(again.getByRole('switch', { name: m.active }));
     await user.click(again.getByRole('button', { name: strings.common.save }));
-    expect(await again.findByText(m.savedOff)).toBeInTheDocument();
+    expect(await screen.findByText(m.savedOff)).toBeInTheDocument();
     expect(screen.queryByText(t.maintenance.title)).not.toBeInTheDocument();
   });
 

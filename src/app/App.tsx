@@ -2,7 +2,6 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Notice } from '../components/Feedback';
 import { UiProvider } from '../components/UiProvider';
 import { strings } from '../content/strings';
-import { PasswordPage } from '../features/admins/PasswordPage';
 import { AuthProvider } from '../features/auth/AuthContext';
 import { LoginPage } from '../features/auth/LoginPage';
 import { RequireAuth } from '../features/auth/RequireAuth';
@@ -20,7 +19,8 @@ export function AppRoutes() {
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
           {shown.flatMap((section) => section.routes.map((route) => <Route key={route.path} path={route.path} element={route.element} />))}
-          <Route path="/password" element={<PasswordPage />} />
+          {/* 내 비밀번호 변경은 관리자 화면의 카드로 옮겼다(D9). 옛 주소는 그리로 보낸다. */}
+          <Route path="/password" element={<Navigate to="/admins" replace />} />
           <Route path="*" element={<Navigate to={home} replace />} />
         </Route>
       </Route>

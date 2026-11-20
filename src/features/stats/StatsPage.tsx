@@ -1,97 +1,113 @@
 import { useCallback } from 'react';
+import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { LoadError, Loading } from '../../components/Feedback';
+import { Icon } from '../../components/icons';
+import type { IconName } from '../../components/icons';
+import { PageHeader } from '../../components/PageHeader';
+import { Pill } from '../../components/Pill';
 import { strings } from '../../content/strings';
-import type { Counts, Stats } from '../../lib/api/types';
+import type { Stats } from '../../lib/api/types';
 import { errorMessage } from '../../lib/errorMessage';
-import { formatDateTime } from '../../lib/text';
+import { formatKst, oneLine } from '../../lib/text';
 import { useLoad } from '../../lib/useLoad';
 import { useAuth } from '../auth/AuthContext';
+import { categoryLabel } from '../inquiries/labels';
+import { waitingOf } from '../inquiries/WaitingCount';
 
 const t = strings.stats;
-type Labels = Readonly<Record<string, string | undefined>>;
+const count = strings.common.count;
+/** 현황 아래 답변 대기 문의 수(D1 — 셋) */
+const WAITING_SHOWN = 3;
+const percent = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
 
-interface TileProps {
-  label: string;
-  total: number;
-  /** 아래에 적는 작은 숫자들: [이름, 값] */
-  rows?: [string, number][];
+function Kpi({ label, icon, value, sub }: { label: string; icon: IconName; value: number; sub: ReactNode }) {
+  return (
+    <section className="card kpi" aria-label={label}>
+      <span className="kpi__label">
+        {label}
+        <Icon name={icon} size={16} />
+      </span>
+      <span className="kpi__value">{count(value)}</span>
+      <span className="kpi__sub">{sub}</span>
+    </section>
+  );
 }
 
-function Tile({ label, total, rows = [] }: TileProps) {
+function Kpis({ stats }: { stats: Stats }) {
+  const by = stats.inquiries.byStatus;
   return (
-    <section className="tile" aria-label={label}>
-      <h2 className="tile__label">{label}</h2>
-      <p className="tile__number">{strings.common.count(total)}</p>
-      {rows.length > 0 && (
-        <dl className="tile__rows">
-          {rows.map(([name, value]) => (
-            <div key={name} className="tile__row">
-              <dt>{name}</dt>
-              <dd>{strings.common.count(value)}</dd>
-            </div>
-          ))}
-        </dl>
+    <div className="kpis">
+      <Kpi label={t.kpi.accounts} icon="user" value={stats.accounts.total} sub={t.accountsSub(stats.accounts.last7Days, stats.accounts.last30Days)} />
+      <Kpi label={t.kpi.nicknames} icon="stats" value={stats.readings.total} sub={t.ratioSub(percent(stats.readings.total, stats.accounts.total))} />
+      <Kpi label={t.kpi.profiles} icon="log" value={stats.profiles.total} sub={t.ratioSub(percent(stats.profiles.total, stats.accounts.total))} />
+      <Kpi label={t.kpi.waiting} icon="inbox" value={waitingOf(stats)} sub={t.waitingSub(by.IN_PROGRESS ?? 0, by.DONE ?? 0)} />
+    </div>
+  );
+}
+
+/** 답변 대기 문의 셋(D1 오른쪽 카드). 못 받으면 카드를 그리지 않는다(위 숫자는 따로 받는다). */
+function Waiting() {
+  const { api } = useAuth();
+  const { state } = useLoad(useCallback(() => api.listInquiries({ status: 'NEW', page: 0, size: WAITING_SHOWN }), [api]));
+  if (state.status !== 'ready') return null;
+  const items = state.data.items;
+  return (
+    <section className="card waiting" aria-labelledby="waiting-title">
+      <h2 className="sec-title waiting__head" id="waiting-title">
+        {t.waitingTitle}
+        <Link className="link-more" to="/inquiries?status=NEW">
+          {t.waitingAll}
+          <span aria-hidden="true"> ›</span>
+        </Link>
+      </h2>
+      {items.length === 0 ? (
+        <p className="field__help waiting__empty">{t.waitingEmpty}</p>
+      ) : (
+        <table className="tbl" aria-label={t.waitingListLabel}>
+          <tbody>
+            {items.map((item) => (
+              <tr key={item.id}>
+                <td>
+                  <Pill tone="mute">{categoryLabel(item.category)}</Pill>
+                </td>
+                <td>
+                  <Link to={`/inquiries/${encodeURIComponent(item.id)}`}>{oneLine(item.body, 40)}</Link>
+                </td>
+                <td className="mono nowrap">{formatKst(item.createdAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </section>
   );
 }
 
-/** 서버가 준 키를 돌면서 그린다. 문구가 없는 키는 받은 그대로 보인다. */
-const rowsOf = (counts: Counts, labels: Labels): [string, number][] =>
-  Object.entries(counts).map(([key, value]) => [labels[key] ?? key, value]);
-
-function Tiles({ stats }: { stats: Stats }) {
-  return (
-    <div className="tiles">
-      <Tile
-        label={t.groups.accounts}
-        total={stats.accounts.total}
-        rows={[
-          [t.last7Days, stats.accounts.last7Days],
-          [t.last30Days, stats.accounts.last30Days],
-        ]}
-      />
-      <Tile label={t.groups.profiles} total={stats.profiles.total} />
-      <Tile label={t.groups.readings} total={stats.readings.total} />
-      <Tile label={t.groups.reports} total={stats.reports.total} rows={rowsOf(stats.reports.byStatus, t.reportStatus)} />
-      <Tile label={t.groups.synastries} total={stats.synastries.total} />
-      <Tile
-        label={t.groups.synastryReports}
-        total={stats.synastryReports.total}
-        rows={rowsOf(stats.synastryReports.byStatus, t.reportStatus)}
-      />
-      <Tile label={t.groups.directions} total={stats.directions.total} rows={rowsOf(stats.directions.byTopic, t.topics)} />
-      <Tile label={t.groups.inquiries} total={stats.inquiries.total} rows={rowsOf(stats.inquiries.byStatus, strings.inquiryStatus)} />
-    </div>
-  );
-}
-
+/** 현황(D1): 지금 계약의 수치를 새 카드로. 1.0.0 지표 · 접속 차트는 서버 S⑪ 뒤(계획 D③). */
 export function StatsPage() {
   const { api } = useAuth();
   const { state, reload } = useLoad(useCallback(() => api.getStats(), [api]));
 
   return (
-    <div className="page">
-      <header className="page__head">
-        <div>
-          <h1 className="page__title">{t.title}</h1>
-          {state.status === 'ready' && <p className="page__sub">{t.generatedAt(formatDateTime(state.data.generatedAt))}</p>}
-        </div>
-        <button type="button" className="btn btn--secondary btn--small" onClick={reload} disabled={state.status === 'loading'}>
+    <>
+      <PageHeader title={t.title}>
+        {state.status === 'ready' && <span className="hide-tablet">{t.generatedAt(formatKst(state.data.generatedAt))}</span>}
+        <button type="button" className="btn btn--secondary" onClick={reload} disabled={state.status === 'loading'}>
           {t.refresh}
         </button>
-      </header>
-      <p className="note">{t.note}</p>
-      {state.status === 'loading' && <Loading />}
-      {state.status === 'error' && <LoadError message={errorMessage(state.error)} onRetry={reload} />}
-      {state.status === 'ready' && (
-        <>
-          <Tiles stats={state.data} />
-          <p className="note note--quiet">
-            {t.noteReports} {strings.common.timeZoneNote}
-          </p>
-        </>
-      )}
-    </div>
+      </PageHeader>
+      <div className="body">
+        {state.status === 'loading' && <Loading />}
+        {state.status === 'error' && <LoadError message={errorMessage(state.error)} onRetry={reload} />}
+        {state.status === 'ready' && (
+          <>
+            <Kpis stats={state.data} />
+            <Waiting />
+            <p className="field__help">{t.note}</p>
+          </>
+        )}
+      </div>
+    </>
   );
 }
