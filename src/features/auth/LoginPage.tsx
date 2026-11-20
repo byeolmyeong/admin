@@ -50,9 +50,10 @@ export function LoginPage() {
           {t.title}
         </h1>
         <p className="login__caption">{t.caption}</p>
-        {notice && !error && (
+        {/* 로그아웃한 뒤에는 안내를 띄우지 않는다(소유자 2026-11-20) — 세션이 끝났을 때만 알린다 */}
+        {notice === 'expired' && !error && (
           <p className="login__notice" role="status">
-            {notice === 'expired' ? t.noticeExpired : t.noticeSignedOut}
+            {t.noticeExpired}
           </p>
         )}
         <TextField label={t.loginId} value={loginId} onChange={setLoginId} autoComplete="username" />

@@ -173,11 +173,12 @@ describe('화면 틀', () => {
     expect(fn).not.toHaveBeenCalled();
   });
 
-  it('로그아웃: 서버에 알리고 토큰을 버리고 로그인 화면으로 간다', async () => {
+  it('로그아웃: 서버에 알리고 토큰을 버리고 로그인 화면으로 간다(안내 문구 없음)', async () => {
     const { calls } = server();
     renderApp(<AppRoutes />);
     await userEvent.click(await screen.findByRole('button', { name: t.logout }));
-    expect(await screen.findByText(strings.login.noticeSignedOut)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: strings.login.title })).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(callsTo(calls, 'POST /admin/auth/logout')[0]?.headers.get('Authorization')).toBe('Bearer tok-test');
     expect(window.sessionStorage.length).toBe(0);
   });
