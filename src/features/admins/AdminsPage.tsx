@@ -207,7 +207,6 @@ export function AdminsPage() {
     <span className="who">
       <Avatar loginId={item.loginId} />
       <span className="who__id">{item.loginId}</span>
-      {me?.id === item.id && <Pill tone="pri">{t.me}</Pill>}
     </span>
   );
 
