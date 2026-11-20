@@ -138,9 +138,6 @@ export const createAdminApi = (client: Client) => ({
     client.request('POST', `/admin/admins/${id(adminId)}/password-reset`, { guard: isTemporaryPassword }).then((r) => r.temporaryPassword),
   setAdminActive: (adminId: string, active: boolean): Promise<AdminAccount> =>
     client.request('PATCH', `/admin/admins/${id(adminId)}`, { body: { active }, guard: isAdminAccount }),
-  /** 다른 관리자의 비밀번호를 다시 정한다. 자기 것은 changePassword 다(서버가 409 로 막는다). */
-  resetAdminPassword: (adminId: string, password: string): Promise<void> =>
-    client.request('PUT', `/admin/admins/${id(adminId)}/password`, { body: { password } }),
 
   listInquiries: (query: InquiryQuery): Promise<InquiryPage> => {
     const params = new URLSearchParams();

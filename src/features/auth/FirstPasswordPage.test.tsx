@@ -59,6 +59,12 @@ describe('첫 로그인 비밀번호 변경(D22)', () => {
     expect(screen.getByLabelText(t.temporary)).toBeInTheDocument();
   });
 
+  it('화면을 쓰는 중 서버가 403 PASSWORD_CHANGE_REQUIRED 로 막으면 여기로 온다', async () => {
+    server({ 'GET /admin/stats': { status: 403, body: { error: 'PASSWORD_CHANGE_REQUIRED' } } });
+    renderApp(<AppRoutes />, { route: '/stats' });
+    expect(await screen.findByText(t.notice)).toBeInTheDocument();
+  });
+
   it('SAME_AS_TEMPORARY 등 서버 거절은 알리고 칸을 비운다', async () => {
     server({ 'PUT /admin/me/password': { status: 400, body: { error: 'SAME_AS_TEMPORARY' } } });
     const user = userEvent.setup();

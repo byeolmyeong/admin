@@ -55,6 +55,7 @@ export const strings = {
     NETWORK: '서버에 연결하지 못했습니다. 인터넷 연결 · 서버 주소 · 서버의 허용 출처 설정을 확인해 주세요.',
     INVALID_RESPONSE: '서버 응답을 읽지 못했습니다. 화면과 서버의 버전이 맞는지 확인해 주세요.',
     UNAUTHORIZED: '세션이 만료되었습니다. 다시 로그인해 주세요.',
+    PASSWORD_CHANGE_REQUIRED: '임시 비밀번호로 로그인했습니다. 비밀번호를 먼저 변경합니다.',
     RATE_LIMITED: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.',
     INVALID_REQUEST: '보낸 값이 올바르지 않습니다. 입력을 확인하고 다시 시도해 주세요.',
     NOT_FOUND: '찾을 수 없습니다. 이미 삭제되었을 수 있습니다.',
@@ -614,6 +615,7 @@ export const strings = {
     },
     errors: {
       INVALID_VERSION: '버전은 숫자를 점으로 나눈 1~3자리로 입력합니다(예: 1.2.0).',
+      INVALID_LATEST_VERSION: '버전은 숫자를 점으로 나눈 1~3자리로 입력합니다(예: 1.2.0).',
       LATEST_BELOW_MIN: '최신 버전은 최소 버전보다 낮을 수 없습니다.',
       INVALID_STORE_URL: '스토어 주소는 https:// 로 시작하고 공백이 없는 500자 이하 주소여야 합니다.',
       INVALID_MESSAGE: '안내 문구는 200자까지 입력할 수 있습니다.',
