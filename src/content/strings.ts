@@ -76,7 +76,6 @@ export const strings = {
     submitting: '로그인 중…',
     required: '아이디와 비밀번호를 입력해 주세요.',
     noticeExpired: '세션이 만료되었습니다. 다시 로그인해 주세요.',
-    noticeSignedOut: '로그아웃했습니다.',
     errors: {
       // 소유자: 어느 쪽이 틀렸는지 알리지 않고 이 한 줄만(D23). 잠금 화면은 없다.
       INVALID_CREDENTIALS: '아이디 또는 비밀번호가 올바르지 않습니다.',
@@ -272,7 +271,6 @@ export const strings = {
     role: '운영자',
     active: '활성',
     inactive: '비활성',
-    me: '나',
     none: '—',
     more: (loginId: string) => `${loginId} 조치`,
     empty: '등록된 관리자가 없습니다.',

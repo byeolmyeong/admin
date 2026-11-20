@@ -17,12 +17,13 @@ const openMenu = async (loginId: string) => userEvent.click(screen.getByRole('bu
 const list = (items = [self, other, off]) => ({ status: 200, body: items });
 
 describe('관리자(D9)', () => {
-  it('표: 아이디(나) · 역할(운영자) · 상태 · 마지막 로그인 · ⋯, 내 줄에는 ⋯ 가 없다', async () => {
+  it('표: 아이디("나" 표시 없음) · 역할(운영자) · 상태 · 마지막 로그인 · ⋯, 내 줄에는 ⋯ 가 없다', async () => {
     mockFetch({ 'GET /admin/me': me, 'GET /admin/admins': list() });
     renderApp(<AdminsPage />);
     const table = await screen.findByRole('table', { name: t.listLabel });
     expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual([t.columns.loginId, t.columns.role, t.columns.state, t.columns.lastLogin, t.columns.action]);
-    expect(await row(self.loginId).findByText(t.me)).toBeInTheDocument();
+    expect(await row(self.loginId).findByText(self.loginId)).toBeInTheDocument();
+    expect(row(self.loginId).queryByText('나')).not.toBeInTheDocument();
     expect(row(self.loginId).getByText('2026.11.20 08:01:12')).toBeInTheDocument();
     expect(row(self.loginId).queryByRole('button', { name: t.more(self.loginId) })).not.toBeInTheDocument();
     expect(row(other.loginId).getByText(t.role)).toBeInTheDocument();
