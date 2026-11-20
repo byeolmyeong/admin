@@ -3,10 +3,10 @@
 별명(가칭) 서비스의 관리자 웹 화면. 문의 관리 · 현황 숫자 · 자주 묻는 질문 편집 · 관리자 계정 · 감사 로그 · 앱 설정. 화면만 가진다 — API 는 서버 저장소(`byeolmyeong-api`)에 있다.
 
 ## 서버 계약 (단일 출처)
-- 서버 저장소 `docs/architecture.md` 의 "관리자 API" 절과 `docs/decisions/014-admin-back-office.md`.
+- 서버 저장소 `docs/architecture.md` 의 "관리자 API" 절과 `docs/decisions/014-admin-back-office.md` · `043-admin-v2.md`(사용자 · 현황 v2 · 임시 비밀번호 · 푸시 발송) · `044-account-suspension.md`.
 - 그 절에 없는 경로·필드·오류 코드를 만들어 쓰지 않는다. 계약이 바뀌면 `src/lib/api/` 의 타입·검사와 테스트를 같은 커밋에서 고친다.
 
-## 스택 (결정: docs/decisions/001-stack.md · 화면 틀의 점검 상태는 002)
+## 스택 (결정: docs/decisions/001-stack.md · 화면 틀의 점검 상태는 002 · v2 메뉴 · 화면 · 반응형 · 동작 · 글귀 규칙은 003)
 Vite · React · TypeScript(strict) · React Router · CSS 파일(토큰) · Vitest + Testing Library · ESLint. Node 22(`.nvmrc`).
 
 ## 명령어 (Node 22)
@@ -24,7 +24,7 @@ Vite · React · TypeScript(strict) · React Router · CSS 파일(토큰) · Vit
 
 ## 규칙
 - 화면 문구는 한국어이고 `src/content/strings.ts` 에서만 가져온다.
-- 색 · 글자 · 간격 · 크기는 `src/styles/tokens.css` 에서만 정한다(앱의 `src/constants/theme.ts` 와 같은 값. 흰 바탕 · 회색 · 초록 `#3DDB99` · Pretendard · 모서리 12/카드 16 · 입력칸과 버튼 높이 56).
+- 색 · 글자 · 간격 · 크기는 `src/styles/tokens.css` 에서만 정한다(결정 003 의 밝은 테마 — 바탕 `#F5F6F8` · 카드 흰색 · 주 색 `#4752FF` · Pretendard. 지금 값을 바꾸는 일은 계획 D⓪).
 - 테스트 먼저: 로직과 화면은 실패하는 테스트를 보고 구현한다. 서버 호출은 테스트에서 `fetch` 를 흉내 낸다.
 - 서버 응답은 쓰기 전에 실행 시점에 모양을 검사한다(`src/lib/api/guards.ts`).
 - 비밀값을 저장소에 두지 않는다. `.env.example` 에는 이름만.
