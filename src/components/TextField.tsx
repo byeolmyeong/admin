@@ -14,17 +14,19 @@ interface Props {
   /** 글자 수(코드 포인트)와 한도. 넘으면 빨갛게 보인다. */
   counter?: { count: number; max: number };
   autoComplete?: string;
+  placeholder?: string;
   disabled?: boolean;
 }
 
 /** 라벨은 위, 도움말·오류·글자 수는 아래인 입력칸(앱 결정 018 의 채운 입력칸). */
-export function TextField({ label, value, onChange, type = 'text', multiline, rows = 4, help, error, counter, autoComplete, disabled }: Props) {
+export function TextField({ label, value, onChange, type = 'text', multiline, rows = 4, help, error, counter, autoComplete, placeholder, disabled }: Props) {
   const id = useId();
   const describedBy = [help && `${id}-help`, error && `${id}-error`, counter && `${id}-count`].filter(Boolean).join(' ');
   const shared = {
     id,
     value,
     disabled,
+    placeholder,
     'aria-invalid': error ? true : undefined,
     'aria-describedby': describedBy || undefined,
   };
@@ -46,7 +48,7 @@ export function TextField({ label, value, onChange, type = 'text', multiline, ro
             </p>
           )}
           {error && (
-            <p className="field__error" id={`${id}-error`}>
+            <p className="field__error" id={`${id}-error`} role="alert">
               {error}
             </p>
           )}

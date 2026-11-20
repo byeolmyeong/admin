@@ -16,14 +16,21 @@ export const isValidName = (raw: string): boolean => {
   return length >= 1 && length <= NAME_MAX;
 };
 
-export type PasswordProblem = 'TOO_SHORT' | 'TOO_LONG';
+export type PasswordProblem = 'TOO_SHORT' | 'TOO_LONG' | 'NO_MIX';
 
-/** 앞뒤 공백을 떼지 않고 본다. */
+/** 영문과 숫자를 함께 썼는지(결정 003 의 2 — "10자 이상 · 영문 · 숫자 조합") */
+export const hasLetterAndDigit = (password: string): boolean => /[A-Za-z]/.test(password) && /[0-9]/.test(password);
+
+/** 앞뒤 공백을 떼지 않고 본다. 서버 규칙(10자 · 72바이트)에 화면 규칙(영문 · 숫자 조합)을 더한다. */
 export const passwordProblem = (password: string): PasswordProblem | null => {
   if (codePointLength(password) < PASSWORD_MIN) return 'TOO_SHORT';
   if (utf8ByteLength(password) > PASSWORD_MAX_BYTES) return 'TOO_LONG';
+  if (!hasLetterAndDigit(password)) return 'NO_MIX';
   return null;
 };
+
+/** 관리자 아이디(보드 D16 — 영문 소문자 · 숫자 4~20자). 서버 규칙(3~32자)보다 좁다. */
+export const ADMIN_LOGIN_ID_PATTERN = /^[a-z0-9]{4,20}$/;
 
 /** 계약 "감사 기록" 의 from · to: 한국 시간의 날짜 `YYYY-MM-DD`, 달력에 있는 날. */
 export const isValidDate = (value: string): boolean => {

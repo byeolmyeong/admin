@@ -21,7 +21,18 @@ const tree = (
 );
 const open = () => renderApp(tree, { route: `/inquiries/${one.id}` });
 
-describe('문의 상세', () => {
+describe('문의 상세(D3)', () => {
+  it('머리는 "‹ 문의" 하나(목록으로), 종류 · 상태 · 접수 일시를 위에 보인다', async () => {
+    mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one } });
+    open();
+    const back = await screen.findByRole('link', { name: strings.inquiries.title });
+    expect(back).toHaveAttribute('href', '/inquiries');
+    expect(screen.getByRole('heading', { level: 1, name: strings.inquiries.title })).toBeInTheDocument();
+    expect(screen.getByText(strings.inquiries.categories.BUG)).toBeInTheDocument();
+    expect(screen.getAllByText(strings.inquiryStatus.NEW).length).toBeGreaterThan(0);
+    expect(screen.getByText('2026.11.12 13:05:06')).toBeInTheDocument();
+  });
+
   it('글 전체를 줄바꿈 그대로, 글자로만 보여 준다(HTML 로 해석하지 않는다)', async () => {
     const body = '첫 줄\n<img src=x onerror="alert(1)"><b>굵게</b>\n\n끝';
     mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: inquiry({ body }) } });
@@ -29,59 +40,105 @@ describe('문의 상세', () => {
     const text = await screen.findByLabelText(t.body);
     expect(text.textContent).toBe(body);
     expect(text).toHaveClass('prewrap');
-    expect(container.querySelector('img')).toBeNull();
+    expect(container.querySelector('img[src="x"]')).toBeNull();
     expect(container.querySelector('b')).toBeNull();
   });
 
-  it('종류·보낸 때·보낸 계정 표시를 보여 준다', async () => {
+  it('작성자 줄: 서버가 owner 를 주면 닉네임 · 로그인 수단 · 기기 · 가입과 "사용자 상세 ›"', async () => {
+    const owned = inquiry({ owner: { userId: 'u1', nickname: '새벽별', provider: 'KAKAO', platform: 'ios', appVersion: '1.0.2', joinedAt: '2026-11-08T05:20:05Z' } });
+    mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: owned } });
+    open();
+    expect(await screen.findByText('새벽별')).toBeInTheDocument();
+    // 데스크톱은 한 줄, 폰은 두 줄로 나뉜다(같은 글, 사이 " · " 는 폰에서 숨김)
+    expect(screen.getByText('카카오 · iOS 1.0.2')).toBeInTheDocument();
+    expect(screen.getByText('가입 2026.11.08 14:20:05')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: t.userDetail })).toHaveAttribute('href', '/users/u1');
+  });
+
+  it('owner 가 아직 없으면(서버 S⑧ 전) 계정 코드와 "활동 기록 ›"(그 계정으로 거른 감사 로그)', async () => {
     mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one } });
     open();
     expect(await screen.findByText('0123456789ab')).toBeInTheDocument();
-    expect(screen.getByText(t.ownerRefHelp)).toBeInTheDocument();
-    expect(screen.getByText(strings.inquiries.categories.BUG)).toBeInTheDocument();
-    expect(screen.getByText('2026-11-12 13:05')).toBeInTheDocument();
-    expect(screen.getByText(t.notHandled)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: t.ownerActions })).toHaveAttribute('href', '/audit-logs?actorType=USER&actorRef=0123456789ab');
   });
 
-  it('"이 계정의 행동 보기" 는 그 ownerRef 의 사용자 행동으로 거른 감사 로그로 간다', async () => {
-    mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one } });
-    open();
-    expect(await screen.findByRole('link', { name: t.ownerActions })).toHaveAttribute('href', '/audit-logs?actorType=USER&actorRef=0123456789ab');
-  });
-
-  it('답장 이메일: mailto 링크와 복사 버튼, 서버가 메일을 보내지 않는다는 안내', async () => {
+  it('옛 문의의 답장 이메일: 복사 · 메일 쓰기와 안내', async () => {
     mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one } });
     const user = userEvent.setup();
     open();
     expect(await screen.findByRole('link', { name: t.mailto })).toHaveAttribute('href', 'mailto:user@example.com');
     expect(screen.getByText(t.mailNote)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: t.copy }));
-    expect(await screen.findByText(t.copied)).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(t.copied);
     expect(await navigator.clipboard.readText()).toBe('user@example.com');
   });
 
-  it('이메일을 남기지 않았으면 링크와 복사 버튼이 없다', async () => {
+  it('이메일이 없는 문의(1.0.0 앱 안 문의)는 답장 이메일 줄이 없다', async () => {
     mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: inquiry({ replyEmail: null }) } });
     open();
-    expect(await screen.findByText(t.noReplyEmail)).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: t.mailto })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: t.copy })).not.toBeInTheDocument();
+    await screen.findByLabelText(t.body);
+    expect(screen.queryByText(t.replyEmail)).not.toBeInTheDocument();
   });
 
-  it('상태를 바꾸면 status 만 보내고, 처리한 관리자와 때를 보여 준다', async () => {
-    const changed = inquiry({ status: 'IN_PROGRESS', handledBy: { id: admin.id, name: '김관리' }, handledAt: '2026-11-12T06:00:00Z' });
-    const { calls } = mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one }, [PATCH]: { status: 200, body: changed } });
+  it('답변 전송: 앞뒤 공백을 뗀 answer 만 보내고 "답변을 전송했습니다", 안내 문구가 있다', async () => {
+    const answered = inquiry({ status: 'ANSWERED', answer: '확인해 주세요.', answeredAt: '2026-11-12T07:00:00Z', answeredBy: { id: admin.id, name: 'kim' } });
+    const { calls } = mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one }, [PATCH]: { status: 200, body: answered } });
+    const user = userEvent.setup();
     open();
-    const group = within(await screen.findByRole('group', { name: t.status }));
-    expect(group.getByRole('button', { name: strings.inquiryStatus.NEW })).toHaveAttribute('aria-pressed', 'true');
-    await userEvent.click(group.getByRole('button', { name: strings.inquiryStatus.IN_PROGRESS }));
-    expect(await screen.findByText(t.statusSaved)).toBeInTheDocument();
-    expect(callsTo(calls, PATCH)[0]?.body).toEqual({ status: 'IN_PROGRESS' });
-    expect(group.getByRole('button', { name: strings.inquiryStatus.IN_PROGRESS })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByText(t.handledBy('김관리', '2026-11-12 15:00'))).toBeInTheDocument();
+    expect(await screen.findByText(t.answerHelp)).toBeInTheDocument();
+    const send = screen.getByRole('button', { name: t.send });
+    expect(send).toBeDisabled();
+    await user.type(screen.getByLabelText(t.answer), '  확인해 주세요.  ');
+    await user.click(send);
+    expect(await screen.findByRole('status')).toHaveTextContent(t.sent);
+    expect(callsTo(calls, PATCH)[0]?.body).toEqual({ answer: '확인해 주세요.' });
+    expect(screen.getByText(t.answered('kim', '2026.11.12 16:00:00'))).toBeInTheDocument();
+    expect(screen.getAllByText(strings.inquiryStatus.ANSWERED).length).toBeGreaterThan(0);
   });
 
-  it('메모를 저장하면 앞뒤 공백을 뗀 memo 만 보낸다', async () => {
+  it('임시 저장은 answerDraft 로 보낸다(알림 없음)', async () => {
+    const { calls } = mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one }, [PATCH]: { status: 200, body: inquiry({ answerDraft: '초안' }) } });
+    const user = userEvent.setup();
+    open();
+    await user.type(await screen.findByLabelText(t.answer), '초안');
+    await user.click(screen.getByRole('button', { name: t.draft }));
+    expect(await screen.findByRole('status')).toHaveTextContent(t.drafted);
+    expect(callsTo(calls, PATCH)[0]?.body).toEqual({ answerDraft: '초안' });
+  });
+
+  it('답변 글자 수는 코드 포인트로 세고 2000자를 넘으면 보낼 수 없다', async () => {
+    mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one } });
+    open();
+    const box = await screen.findByLabelText(t.answer);
+    fireEvent.change(box, { target: { value: '😀'.repeat(2000) } });
+    expect(screen.getByText(strings.common.counter(2000, 2000))).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: t.send })).toBeEnabled();
+    fireEvent.change(box, { target: { value: '😀'.repeat(2001) } });
+    expect(screen.getByRole('button', { name: t.send })).toBeDisabled();
+  });
+
+  it('앱 미리보기: 내 문의와 적는 중인 답변을 보인다', async () => {
+    mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one } });
+    const user = userEvent.setup();
+    open();
+    const preview = within(await screen.findByRole('region', { name: t.preview }));
+    expect(preview.getByText(t.previewMine(strings.inquiries.categories.BUG))).toBeInTheDocument();
+    expect(preview.getByText(t.previewEmpty)).toBeInTheDocument();
+    await user.type(screen.getByLabelText(t.answer), '휴대폰 설정을 확인해 주세요.');
+    expect(preview.getByText('휴대폰 설정을 확인해 주세요.')).toBeInTheDocument();
+  });
+
+  it('서버가 답변을 아직 못 받으면(INVALID_REQUEST) 알리고 적던 글은 그대로', async () => {
+    mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one }, [PATCH]: { status: 400, body: { error: 'INVALID_REQUEST' } } });
+    const user = userEvent.setup();
+    open();
+    await user.type(await screen.findByLabelText(t.answer), '답');
+    await user.click(screen.getByRole('button', { name: t.send }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(t.errors.INVALID_REQUEST);
+    expect(screen.getByLabelText(t.answer)).toHaveValue('답');
+  });
+
+  it('내부 메모는 칸을 떠날 때 바뀌었으면 앞뒤 공백을 떼고 저장한다(저장 버튼 없음)', async () => {
     const { calls } = mockFetch({
       'GET /admin/me': me,
       [GET]: { status: 200, body: one },
@@ -90,64 +147,49 @@ describe('문의 상세', () => {
     const user = userEvent.setup();
     open();
     await user.type(await screen.findByLabelText(t.memo), '  환불 문의로 넘김  ');
-    await user.click(screen.getByRole('button', { name: t.memoSave }));
-    expect(await screen.findByText(t.memoSaved)).toBeInTheDocument();
+    await user.tab();
+    expect(await screen.findByRole('status')).toHaveTextContent(t.memoSaved);
     expect(callsTo(calls, PATCH)[0]?.body).toEqual({ memo: '환불 문의로 넘김' });
-    expect(screen.getByLabelText(t.memo)).toHaveValue('환불 문의로 넘김');
+    // 바뀌지 않았으면 다시 보내지 않는다
+    await user.click(screen.getByLabelText(t.memo));
+    await user.tab();
+    expect(callsTo(calls, PATCH)).toHaveLength(1);
   });
 
-  it('메모를 비우고 저장하면 null 을 보내 지운다', async () => {
-    const { calls } = mockFetch({
-      'GET /admin/me': me,
-      [GET]: { status: 200, body: inquiry({ memo: '예전 메모' }) },
-      [PATCH]: { status: 200, body: inquiry({ memo: null }) },
-    });
+  it('메모를 비우고 떠나면 null 로 지운다', async () => {
+    const { calls } = mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: inquiry({ memo: '예전 메모' }) }, [PATCH]: { status: 200, body: inquiry({ memo: null }) } });
     const user = userEvent.setup();
     open();
-    const memo = await screen.findByLabelText(t.memo);
-    expect(memo).toHaveValue('예전 메모');
-    await user.clear(memo);
-    await user.click(screen.getByRole('button', { name: t.memoSave }));
-    await screen.findByText(t.memoSaved);
+    await user.clear(await screen.findByLabelText(t.memo));
+    await user.tab();
+    await screen.findByRole('status');
     expect(callsTo(calls, PATCH)[0]?.body).toEqual({ memo: null });
   });
 
-  it('메모 글자 수는 코드 포인트로 세고 2000자를 넘으면 저장을 막는다', async () => {
-    const { calls } = mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one } });
-    open();
-    const memo = await screen.findByLabelText(t.memo);
-    fireEvent.change(memo, { target: { value: '😀'.repeat(2000) } });
-    expect(screen.getByText(strings.common.counter(2000, 2000))).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: t.memoSave })).toBeEnabled();
-    fireEvent.change(memo, { target: { value: '😀'.repeat(2001) } });
-    expect(screen.getByText(strings.common.counter(2001, 2000))).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: t.memoSave })).toBeDisabled();
-    expect(callsTo(calls, PATCH)).toHaveLength(0);
-  });
-
-  it('서버가 INVALID_MEMO 로 거절하면 알리고 쓴 글은 그대로 둔다', async () => {
+  it('메모 저장이 거절되면(INVALID_MEMO) 알리고 글은 그대로', async () => {
     mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one }, [PATCH]: { status: 400, body: { error: 'INVALID_MEMO' } } });
     const user = userEvent.setup();
     open();
     await user.type(await screen.findByLabelText(t.memo), '메모');
-    await user.click(screen.getByRole('button', { name: t.memoSave }));
+    await user.tab();
     expect(await screen.findByRole('alert')).toHaveTextContent(t.errors.INVALID_MEMO);
     expect(screen.getByLabelText(t.memo)).toHaveValue('메모');
   });
 
-  it('없는 문의(NOT_FOUND)는 계정과 함께 지워졌을 수 있다고 알리고 목록으로 보낸다', async () => {
+  it('없는 문의(NOT_FOUND)는 계정과 함께 삭제됐을 수 있다고 알리고 목록으로 돌아간다', async () => {
     mockFetch({ 'GET /admin/me': me, [GET]: { status: 404, body: { error: 'NOT_FOUND' } } });
     open();
     expect(await screen.findByText(t.gone)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('link', { name: t.back }));
+    await userEvent.click(screen.getByRole('link', { name: strings.inquiries.title }));
     expect(screen.getByText('목록 화면')).toBeInTheDocument();
   });
 
-  it('고치는 사이에 지워졌으면(NOT_FOUND) 같은 안내로 바꾼다', async () => {
+  it('고치는 사이에 삭제됐으면(NOT_FOUND) 같은 안내로 바꾼다', async () => {
     mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one }, [PATCH]: { status: 404, body: { error: 'NOT_FOUND' } } });
+    const user = userEvent.setup();
     open();
-    const group = within(await screen.findByRole('group', { name: t.status }));
-    await userEvent.click(group.getByRole('button', { name: strings.inquiryStatus.DONE }));
+    await user.type(await screen.findByLabelText(t.answer), '답');
+    await user.click(screen.getByRole('button', { name: t.send }));
     expect(await screen.findByText(t.gone)).toBeInTheDocument();
     expect(screen.queryByLabelText(t.memo)).not.toBeInTheDocument();
   });
@@ -159,5 +201,16 @@ describe('문의 상세', () => {
     routes[GET] = { status: 200, body: one };
     await userEvent.click(screen.getByRole('button', { name: strings.common.retry }));
     expect(await screen.findByLabelText(t.body)).toBeInTheDocument();
+  });
+
+  it('목록에서 들고 온 조건으로 돌아간다', async () => {
+    mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one } });
+    renderApp(
+      <Routes>
+        <Route path="/inquiries/:id" element={<InquiryDetailPage />} />
+      </Routes>,
+      { route: `/inquiries/${one.id}` },
+    );
+    expect(await screen.findByRole('link', { name: strings.inquiries.title })).toHaveAttribute('href', '/inquiries');
   });
 });

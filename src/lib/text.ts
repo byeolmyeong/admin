@@ -10,20 +10,26 @@ export const oneLine = (text: string, max: number): string => {
   return points.length <= max ? points.join('') : `${points.slice(0, max).join('')}…`;
 };
 
-const seoul = new Intl.DateTimeFormat('sv-SE', {
+const seoulParts = new Intl.DateTimeFormat('en-US', {
   timeZone: 'Asia/Seoul',
   year: 'numeric',
   month: '2-digit',
   day: '2-digit',
   hour: '2-digit',
   minute: '2-digit',
+  second: '2-digit',
   hourCycle: 'h23',
 });
 
-/** 서버의 UTC 시각 글자를 한국 시간 `YYYY-MM-DD HH:mm` 으로. 읽을 수 없으면 받은 그대로. */
-export const formatDateTime = (iso: string): string => {
+/**
+ * 서버의 UTC 시각 글자를 한국 시각 `2026.11.20 08:01:12` 로(어드민 결정 003 의 7 — "오늘 · 어제 · N일 전" 은 쓰지 않는다).
+ * 읽을 수 없으면 받은 그대로.
+ */
+export const formatKst = (iso: string): string => {
   const time = Date.parse(iso);
-  return Number.isNaN(time) ? iso : seoul.format(time);
+  if (Number.isNaN(time)) return iso;
+  const part = Object.fromEntries(seoulParts.formatToParts(time).map((p) => [p.type, p.value]));
+  return `${part.year}.${part.month}.${part.day} ${part.hour}:${part.minute}:${part.second}`;
 };
 
 /** 답장 이메일의 mailto 주소. 주소 자리에 제목·본문을 끼워 넣지 못하게 인코딩한다. */

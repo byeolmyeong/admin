@@ -30,12 +30,12 @@ describe('createAdminApi — 계약의 경로·메서드·본문', () => {
   it('관리자 목록 · 만들기 · 끄고 켜기', async () => {
     const { calls } = mockFetch({
       'GET /admin/admins': { status: 200, body: [adminAccount()] },
-      'POST /admin/admins': { status: 201, body: adminAccount() },
+      'POST /admin/admins': { status: 201, body: { admin: adminAccount(), temporaryPassword: 'Kx7m-Q2pa-9Lrt' } },
       [`PATCH /admin/admins/${admin.id}`]: { status: 200, body: adminAccount({ active: false }) },
     });
     await expect(api().listAdmins()).resolves.toHaveLength(1);
-    await api().createAdmin({ loginId: 'kim', name: '김', password: 'pw-1234567890' });
-    expect(calls[1]?.body).toEqual({ loginId: 'kim', name: '김', password: 'pw-1234567890' });
+    await expect(api().createAdmin('lee2')).resolves.toMatchObject({ temporaryPassword: 'Kx7m-Q2pa-9Lrt' });
+    expect(calls[1]?.body).toEqual({ loginId: 'lee2' });
     await expect(api().setAdminActive(admin.id, false)).resolves.toMatchObject({ active: false });
     expect(calls[2]?.body).toEqual({ active: false });
   });
@@ -111,10 +111,61 @@ describe('createAdminApi — 계약의 경로·메서드·본문', () => {
       'PUT /admin/app-config/maintenance': { status: 200, body: maintenance({ active: true }) },
     });
     await expect(api().getAppConfig()).resolves.toEqual(appConfig());
-    await expect(api().putPlatformConfig('ios', { minVersion: '1.2.0', storeUrl: null, message: null, blockNow: true })).resolves.toEqual(saved);
-    expect(calls[1]?.body).toEqual({ minVersion: '1.2.0', storeUrl: null, message: null, blockNow: true });
+    await expect(api().putPlatformConfig('ios', { latestVersion: '1.3.0', minVersion: '1.2.0', storeUrl: null, message: null, blockNow: true })).resolves.toEqual(saved);
+    expect(calls[1]?.body).toEqual({ latestVersion: '1.3.0', minVersion: '1.2.0', storeUrl: null, message: null, blockNow: true });
     await expect(api().putMaintenance({ active: true, message: null })).resolves.toMatchObject({ active: true });
     expect(calls[2]?.body).toEqual({ active: true, message: null });
+  });
+
+  it('v2 — 비밀번호 재발급 · 접속 차트 · 문의 찾기 · 감사 로그 찾기(결정 043)', async () => {
+    const { calls } = mockFetch({
+      [`POST /admin/admins/${admin.id}/password-reset`]: { status: 200, body: { temporaryPassword: 'Ab12-Cd34-Ef56' } },
+      'GET /admin/stats/active': { status: 200, body: { range: 'week', points: [{ label: '월', value: 3 }], total: 3, average: 3, previousTotal: 2 } },
+      'GET /admin/inquiries': { status: 200, body: { items: [], page: 0, size: 20, total: 0 } },
+      'GET /admin/audit-logs': { status: 200, body: { items: [], page: 0, size: 20, total: 0 } },
+    });
+    await expect(api().reissuePassword(admin.id)).resolves.toBe('Ab12-Cd34-Ef56');
+    await expect(api().getActiveStats('week')).resolves.toMatchObject({ total: 3 });
+    expect(calls[1]?.query.get('range')).toBe('week');
+    await api().listInquiries({ q: '알림', page: 0, size: 20 });
+    expect(calls[2]?.query.toString()).toBe('q=%EC%95%8C%EB%A6%BC&page=0&size=20');
+    await api().listAuditLogs({ q: '새벽별' });
+    expect(calls[3]?.query.get('q')).toBe('새벽별');
+  });
+
+  it('v2 — 사용자 목록 · 상세 · 정지 · 해제 · 삭제 · 재생성(결정 043 · 044)', async () => {
+    const user = { id: 'u1', nickname: '새벽별', profileNo: 1, emailMasked: 'dawn****@kakao.com', provider: 'KAKAO', joinedAt: '2026-11-08T05:20:05Z', lastSeenAt: null, reports: { me: 'DONE', timing: 'FAILED' }, status: 'ACTIVE' };
+    const { calls } = mockFetch({
+      'GET /admin/users': { status: 200, body: { items: [user], page: 0, size: 20, total: 1 } },
+      'POST /admin/users/u1/suspend': { status: 204 },
+      'POST /admin/users/u1/unsuspend': { status: 204 },
+      'DELETE /admin/users/u1': { status: 204 },
+      'POST /admin/users/u1/regenerate': { status: 204 },
+    });
+    await expect(api().listUsers({ q: '새벽', status: '', provider: 'KAKAO', page: 0, size: 20 })).resolves.toMatchObject({ total: 1 });
+    expect(calls[0]?.query.toString()).toBe('q=%EC%83%88%EB%B2%BD&provider=KAKAO&page=0&size=20');
+    await api().suspendUser('u1', '문의 도배');
+    expect(calls[1]?.body).toEqual({ reason: '문의 도배' });
+    await api().unsuspendUser('u1', '소명 확인');
+    await api().deleteUser('u1', '문의 #131 로 탈퇴 요청', '새벽별');
+    expect(calls[3]?.body).toEqual({ reason: '문의 #131 로 탈퇴 요청', confirmNickname: '새벽별' });
+    await api().regenerate('u1', 'REPORT_TIMING');
+    expect(calls[4]?.body).toEqual({ kind: 'REPORT_TIMING' });
+  });
+
+  it('v2 — 푸시: 대상 수 · 상태 · 내역 · 발송(결정 043 의 6)', async () => {
+    const { calls } = mockFetch({
+      'GET /admin/push/audience': { status: 200, body: { count: 211 } },
+      'GET /admin/push/status': { status: 200, body: { canSend: true, reason: null, sentTodayAt: null, sentTodayBy: null, nextAvailableAt: null } },
+      'GET /admin/push/events': { status: 200, body: { items: [], page: 0, size: 10, total: 0 } },
+      'POST /admin/push/events': { status: 202, body: { id: 'p1', recipients: 211 } },
+    });
+    await expect(api().getPushAudience()).resolves.toBe(211);
+    await expect(api().getPushStatus()).resolves.toMatchObject({ canSend: true });
+    await api().listPushEvents(0, 10);
+    expect(calls[2]?.query.toString()).toBe('page=0&size=10');
+    await expect(api().sendPush({ title: '새 기능', body: '본문', target: 'TIMING_MONTH' })).resolves.toEqual({ id: 'p1', recipients: 211 });
+    expect(calls[3]?.body).toEqual({ title: '새 기능', body: '본문', target: 'TIMING_MONTH' });
   });
 
   it('경로의 id 는 인코딩한다', async () => {

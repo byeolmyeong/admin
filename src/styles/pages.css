@@ -1,0 +1,905 @@
+/* 화면별 스타일(D1 ~ D29). 값은 tokens.css 의 변수만 쓴다. */
+
+/* ── 로그인(D11 · D23) ─────────────────────────────── */
+.login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-lg);
+}
+
+.login__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: 100%;
+  max-width: var(--size-login);
+  padding: 36px var(--space-xl);
+}
+
+.login__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--space-xxs);
+  font: 600 22px/30px var(--font-family);
+}
+
+.login__mark {
+  width: 44px;
+  height: 44px;
+}
+
+.login__caption {
+  margin: -8px 0 var(--space-xs);
+  font: var(--type-body);
+  color: var(--color-hint);
+  text-align: center;
+}
+
+.login__notice {
+  font: var(--type-table);
+  color: var(--color-gray);
+  text-align: center;
+}
+
+/* ── 공통 배치: 두 칸(왼쪽 넓게 · 오른쪽 340) ───────────── */
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--size-detail-side);
+  align-items: start;
+  gap: var(--space-md);
+}
+
+.cols-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+  gap: var(--space-md);
+}
+
+.side-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.side-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 20px;
+}
+
+.side-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.sec-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font: var(--type-heading);
+}
+
+.sec-title small {
+  font: var(--type-small);
+  font-weight: 500;
+  color: var(--color-hint);
+}
+
+.link-more {
+  font: var(--type-table);
+  font-weight: 600;
+  color: var(--color-primary-ink);
+  white-space: nowrap;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.input--memo {
+  min-height: 96px;
+}
+
+/* ── 문의 상세(D3) ─────────────────────────────────── */
+.inquiry {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px var(--space-lg);
+}
+
+.inquiry__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  font: var(--type-table);
+}
+
+.inquiry__body {
+  font: 400 16px/26px var(--font-family);
+}
+
+.inquiry__owner,
+.inquiry__email {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding-top: var(--space-sm);
+  border-top: var(--line) solid var(--color-hair);
+  font: var(--type-table);
+}
+
+.inquiry__label {
+  font-weight: 600;
+}
+
+.inquiry__email-actions {
+  display: flex;
+  gap: var(--space-xs);
+  margin-left: auto;
+}
+
+.inquiry__email .field__help {
+  flex-basis: 100%;
+}
+
+@media (max-width: 1023px) {
+  .split,
+  .cols-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 639px) {
+  .inquiry {
+    padding: 18px var(--space-md);
+  }
+
+  .inquiry__email-actions {
+    margin-left: 0;
+  }
+}
+
+/* ── 자주 묻는 질문(D8) ────────────────────────────── */
+.split--faq {
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+
+.faq-list {
+  overflow: hidden;
+}
+
+.faq-list__head {
+  padding: 18px 18px 14px;
+}
+
+.faq-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm) var(--space-xs) 0;
+  border-top: var(--line) solid var(--color-hair);
+}
+
+.faq-row.is-selected {
+  background: var(--color-primary-tint);
+}
+
+.faq-row__main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding: var(--space-xxs) 0 var(--space-xxs) 18px;
+  border: 0;
+  background: none;
+  font: var(--type-body);
+  font-weight: 500;
+  color: var(--color-ink);
+  text-align: left;
+}
+
+.faq-row__no {
+  width: 20px;
+  color: var(--color-hint);
+  font-variant-numeric: tabular-nums;
+}
+
+.faq-row__q {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.faq-editor {
+  gap: 14px;
+}
+
+.faq-editor__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+
+.faq-editor__end {
+  display: flex;
+  gap: var(--space-xs);
+  margin-left: auto;
+}
+
+@media (max-width: 1023px) {
+  .split--faq {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── 관리자(D9) ───────────────────────────────────── */
+.who {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-icon-button);
+  height: var(--size-icon-button);
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font: var(--type-label);
+}
+
+.admin-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.admin-card .who {
+  flex: 1;
+}
+
+.side-card__foot--end {
+  justify-content: flex-end;
+}
+
+.password-card {
+  gap: 14px;
+  padding: 20px 22px;
+}
+
+/* ── 감사 로그(D10) ───────────────────────────────── */
+.audit-detail {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 6px;
+}
+
+.audit-action {
+  font-weight: 600;
+}
+
+.tools__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+@media (max-width: 1023px) {
+  .hide-tablet {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .tools__group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .tools__group .select__button--chip {
+    justify-content: space-between;
+    width: 100%;
+    height: var(--size-button);
+    border-radius: var(--radius);
+  }
+
+  .tools__group .select {
+    display: flex;
+  }
+}
+
+/* ── 앱 설정(D6) ──────────────────────────────────── */
+.config-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 22px;
+}
+
+.config-card__switch {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: var(--space-sm);
+  border-top: var(--line) solid var(--color-hair);
+}
+
+.config-card__foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.audit-detail {
+  gap: 4px 6px;
+}
+
+.audit-detail__sep {
+  color: var(--color-muted);
+}
+
+/* ── 문의 상세(D3): 답변 · 앱 미리보기 · 작성자 ───────────── */
+.answer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: 22px var(--space-lg);
+}
+
+.textarea-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border: var(--line) solid var(--color-hair);
+  border-radius: var(--radius);
+  background: var(--color-paper);
+}
+
+.textarea-box:focus-within {
+  border-color: var(--color-primary);
+}
+
+.textarea-box__input {
+  min-height: 110px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: var(--type-body);
+  color: var(--color-ink);
+  resize: vertical;
+  outline: none;
+}
+
+.textarea-box .field__count {
+  align-self: flex-end;
+}
+
+.answer__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+}
+
+.inquiry__owner-name {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.inquiry__owner .avatar {
+  width: 32px;
+  height: 32px;
+}
+
+.app-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--color-app-bg);
+}
+
+.app-preview__bubble {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-sm);
+  border: var(--line) solid var(--color-app-line);
+  border-radius: var(--radius-pop);
+  background: var(--color-app-card);
+  font: 400 12px/18px var(--font-family);
+  color: var(--color-app-ink);
+}
+
+.app-preview__bubble--answer {
+  border-color: var(--color-app-accent-line);
+  background: var(--color-app-accent-bg);
+}
+
+.app-preview__label {
+  color: var(--color-app-hint);
+}
+
+.app-preview__bubble--answer .app-preview__label {
+  color: var(--color-app-accent-hint);
+}
+
+/* 폰 문의 목록: 종류 선택 메뉴 + 찾기 칸 한 줄 */
+.tools__row {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.tools__row .select__button--chip {
+  height: var(--size-button);
+  border-radius: var(--radius);
+}
+
+/* ── 첫 로그인 비밀번호 변경(D22) ─────────────────────── */
+.info-box {
+  padding: var(--space-sm) 14px;
+  border-radius: var(--radius);
+  background: var(--color-primary-light);
+  font: var(--type-table);
+  color: var(--color-primary-ink);
+}
+
+.info-box--mute {
+  background: var(--color-fill);
+  color: var(--color-gray);
+}
+
+.info-box--warn {
+  background: var(--color-warn-light);
+  color: var(--color-warn);
+}
+
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rules__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font: var(--type-table);
+  color: var(--color-hint);
+}
+
+.rules__item.is-ok {
+  color: var(--color-good);
+}
+
+.copy-row {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.copy-row .input {
+  flex: 1;
+  font: 500 16px/24px ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.04em;
+}
+
+.copy-row__button {
+  height: var(--size-input);
+}
+
+.who__id {
+  font-weight: 600;
+}
+
+/* ── 사용자(D4 · D5) ─────────────────────────────── */
+.ustrip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-sm);
+}
+
+.ustrip__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px var(--space-md);
+}
+
+.ustrip__label,
+.ustrip__sub {
+  font: var(--type-small);
+  color: var(--color-hint);
+}
+
+.ustrip__value {
+  font: 600 20px/28px var(--font-family);
+  letter-spacing: -0.02em;
+}
+
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.user-card__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font: 400 13px/17px var(--font-family);
+}
+
+.user-card__text .row-card__title {
+  margin-bottom: 2px;
+}
+
+.avatar--large {
+  width: 52px;
+  height: 52px;
+  font: 600 18px/1 var(--font-family);
+}
+
+.profile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 20px var(--space-lg);
+}
+
+.profile__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font: var(--type-table);
+}
+
+.profile__name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font: 600 18px/26px var(--font-family);
+}
+
+.profile__actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.suspended {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px var(--space-md);
+  font: var(--type-table);
+}
+
+.suspended__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-weight: 600;
+  color: var(--color-danger);
+}
+
+.suspended__dot {
+  background: var(--color-danger);
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 10px var(--space-md);
+  font: var(--type-table);
+}
+
+.kv dt {
+  color: var(--color-hint);
+}
+
+.kv--recent {
+  grid-template-columns: 1fr;
+}
+
+.kv__row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: var(--space-md);
+}
+
+.gen-list,
+.plain-list {
+  display: flex;
+  flex-direction: column;
+  font: var(--type-table);
+}
+
+.gen-list__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 60px;
+  border-top: var(--line) solid var(--color-hair);
+}
+
+.gen-list__end {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.btn--compact {
+  height: var(--size-page-button);
+  padding: 0 var(--space-sm);
+}
+
+.plain-list {
+  gap: 6px;
+}
+
+.plain-list--rows li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: var(--line) solid var(--color-hair);
+}
+
+.textarea-box__input--short {
+  min-height: 56px;
+  resize: none;
+}
+
+/* ── 푸시 발송(D7 · D14 · D28) ───────────────────── */
+.split--push {
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+
+.compose {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px var(--space-lg);
+}
+
+.compose__count {
+  align-self: flex-end;
+}
+
+.compose__notes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font: var(--type-small);
+  color: var(--color-hint);
+}
+
+.compose__foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.info-box__sub {
+  color: var(--color-gray);
+}
+
+.push-history__head {
+  padding: 18px 22px 6px;
+}
+
+.push-history__empty {
+  padding: 0 22px 18px;
+}
+
+.device {
+  padding: 18px var(--space-sm);
+  border-radius: var(--radius-sheet);
+  background: var(--gradient-app-device);
+}
+
+.device__note {
+  display: flex;
+  gap: 10px;
+  padding: var(--space-sm) 14px;
+  border-radius: 14px;
+  background: var(--color-app-accent-bg);
+  color: var(--color-app-ink);
+}
+
+.device__icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  border-radius: var(--radius-small);
+  background: var(--color-app-bg);
+}
+
+.device__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font: 400 12px/18px var(--font-family);
+}
+
+.device__text b {
+  font-weight: 600;
+}
+
+.push-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  border-radius: var(--radius-pop);
+  background: var(--color-fill);
+  font: var(--type-table);
+}
+
+@media (max-width: 1023px) {
+  .ustrip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .split--push {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 639px) {
+  /* 폰 프로필(D5 폰): 아바타 위 · 이름 · 설명 · 조치 버튼 오른쪽 */
+  .profile {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-sm);
+  }
+
+  .profile__actions {
+    justify-content: flex-end;
+  }
+
+  .kv {
+    grid-template-columns: 100px 1fr;
+  }
+
+  /* 최근 활동은 폰에서도 두 칸(시각 · 내용) 한 줄씩 */
+  .kv--recent {
+    grid-template-columns: 1fr;
+  }
+
+  .kv__row {
+    grid-template-columns: 150px 1fr;
+    gap: var(--space-sm);
+  }
+
+  .compose__foot .btn {
+    width: 100%;
+  }
+
+  /* 발송 내역: 카드 속 한 줄씩(테두리 없이) */
+  .push-history .stack {
+    gap: 0;
+    padding: 0 22px 18px;
+  }
+
+  .push-history .row-card {
+    padding: var(--space-xs) 0;
+    border: 0;
+    box-shadow: none;
+  }
+}
+
+/* ── 시안 v184 ─────────────────────────────────────── */
+/* 화살표 링크: 13px 굵게 + 16px 오른쪽 화살표 */
+.link-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  font: var(--type-table);
+  font-weight: 600;
+}
+
+.link-more .icon {
+  flex-shrink: 0;
+}
+
+/* 문의 작성자 줄(D3): 데스크톱은 한 줄(메타 한 줄 · 링크 세로 가운데) */
+.inquiry__owner {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  grid-template-areas: 'avatar name meta link';
+  flex-wrap: nowrap;
+  column-gap: 10px;
+}
+
+.inquiry__owner .avatar {
+  grid-area: avatar;
+}
+
+.inquiry__owner-name {
+  grid-area: name;
+}
+
+.inquiry__owner-meta {
+  grid-area: meta;
+  min-width: 0;
+}
+
+.inquiry__owner-link {
+  grid-area: link;
+}
+
+/* 관리자 폰 카드(D9): 아이디 아래 마지막 로그인 */
+.admin-card__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-card__last {
+  padding-left: 40px;
+  font: var(--type-small);
+  color: var(--color-hint);
+}
+
+/* 앱 설정(D6): 최신 · 최소 버전 한 줄에 둘 */
+.f2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+  align-items: start;
+}
+
+@media (max-width: 639px) {
+  /* 작성자 줄 폰: 아바타 위쪽 · 1줄 닉네임 / 링크, 아래로 수단 · 기기 한 줄, 가입 한 줄 */
+  .inquiry__owner {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'avatar name link'
+      'avatar meta meta';
+    align-items: start;
+    row-gap: 2px;
+  }
+
+  .inquiry__owner-meta {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .inquiry__owner-sep {
+    display: none;
+  }
+
+  .f2 {
+    grid-template-columns: 1fr;
+  }
+}

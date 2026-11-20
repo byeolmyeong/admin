@@ -17,14 +17,14 @@ Vite · React · TypeScript(strict) · React Router · CSS 파일(토큰) · Vit
 ## 디렉터리 (이름이 곧 지시)
 - `src/app/` 라우터 · 화면 틀(왼쪽 메뉴) · 구역 목록(`sections.tsx` — 메뉴와 라우트가 여기서 나온다. 새 구역은 여기에 한 줄)
 - `src/features/<영역>/` 화면과 그 로직(auth · stats · inquiries · faqs · admins · audit · app-config)
-- `src/components/` 공용 부품 · `src/content/` 문구(`strings.ts`)와 FAQ 초안(`faq-seed.json`)
+- `src/components/` 공용 부품(결정 003 의 동작 규칙을 맡는 선택 메뉴 · 시트 · 기간 고르기 · 표 · 페이지 번호 · ⋯ 메뉴 · 확인 창 · 짧은 알림 · 빈 상태 — 화면은 이것만 쓴다) · `src/content/` 문구(`strings.ts`)와 FAQ 초안(`faq-seed.json`)
 - `src/lib/` 서버 호출(`api/`) · 세션 보관 · 글자 수 세기 등 순수 함수
-- `src/styles/` 디자인 값(`tokens.css`)과 화면 스타일(`app.css`)
+- `src/styles/` 디자인 값(`tokens.css`)과 스타일 — 화면 틀(`app.css`) · 공용 부품(`components.css`) · 화면별(`pages.css`)
 - `docs/decisions/` 결정 기록(번호순). `dist/` 는 생성물이다.
 
 ## 규칙
 - 화면 문구는 한국어이고 `src/content/strings.ts` 에서만 가져온다.
-- 색 · 글자 · 간격 · 크기는 `src/styles/tokens.css` 에서만 정한다(결정 003 의 밝은 테마 — 바탕 `#F5F6F8` · 카드 흰색 · 주 색 `#4752FF` · Pretendard. 지금 값을 바꾸는 일은 계획 D⓪).
+- 색 · 글자 · 간격 · 크기는 `src/styles/tokens.css` 에서만 정한다(결정 003 의 밝은 테마 — 바탕 `#F5F6F8` · 카드 흰색 · 주 색 `#4752FF` · Pretendard).
 - 테스트 먼저: 로직과 화면은 실패하는 테스트를 보고 구현한다. 서버 호출은 테스트에서 `fetch` 를 흉내 낸다.
 - 서버 응답은 쓰기 전에 실행 시점에 모양을 검사한다(`src/lib/api/guards.ts`).
 - 비밀값을 저장소에 두지 않는다. `.env.example` 에는 이름만.

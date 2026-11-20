@@ -1,7 +1,7 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes, useLocation } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { strings } from '../../content/strings';
 import { AUDIT_ADMIN_ACTIONS, AUDIT_USER_ACTIONS } from '../../lib/api/types';
 import type { AuditLog } from '../../lib/api/types';
@@ -60,53 +60,58 @@ const userRow = auditLog({
   detail: { relation: 'LOVE' },
 });
 
-describe('감사 로그', () => {
-  it('한 줄에 때(한국 시간)·누가·무엇을·대상·결과·자세히를 보여 준다', async () => {
+// 기간 고르기의 "오늘"(오늘 뒤 금지)을 고정한다. 타이머는 그대로 둔다.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-11-20T03:00:00Z'));
+});
+afterEach(() => vi.useRealTimers());
+
+const actorSeg = () => within(screen.getByRole('group', { name: t.actorTypeLabel }));
+
+describe('감사 로그(D10)', () => {
+  it('표: 일시(한국 시각) · 주체 · 계정 · 활동 · 내용(대상 · 자세히)', async () => {
     const { calls } = mockFetch({ 'GET /admin/me': me, [LIST]: page([updated, failedLogin, userRow]) });
     renderApp(tree, { route: '/audit-logs' });
     const all = await rows();
     expect(all).toHaveLength(4);
+    expect(within(all[0] as HTMLElement).getAllByRole('columnheader').map((h) => h.textContent)).toEqual([
+      t.columns.occurredAt,
+      t.columns.actorType,
+      t.columns.actor,
+      t.columns.action,
+      t.columns.detail,
+    ]);
 
     const first = within(all[1] as HTMLElement);
-    expect(first.getByText('2026-11-12 13:05')).toBeInTheDocument();
+    expect(first.getByText('2026.11.12 13:05:06')).toBeInTheDocument();
+    expect(first.getByText(t.actorTypes.ADMIN)).toBeInTheDocument();
     expect(first.getByRole('button', { name: t.filterByActor('root-admin') })).toHaveTextContent('root-admin');
     expect(first.getByText(t.actions.INQUIRY_UPDATED)).toBeInTheDocument();
-    expect(first.getByRole('link', { name: t.target(t.targets.INQUIRY, '7c1d2e3f') })).toHaveAttribute('href', `/inquiries/${inquiryId}`);
-    expect(first.getByText(t.outcomes.SUCCESS)).not.toHaveClass('badge--danger');
-    expect(first.getByText(chip('상태', '끝남'))).toBeInTheDocument();
-    expect(first.getByText(chip('메모', '바뀜'))).toBeInTheDocument();
+    // 대상은 종류 글만 — 날 id 는 보이지 않는다(시안 v184)
+    expect(first.getByRole('link', { name: t.targets.INQUIRY })).toHaveAttribute('href', `/inquiries/${inquiryId}`);
+    expect(first.queryByText(/7c1d2e3f/)).not.toBeInTheDocument();
+    expect(first.getByText(chip('상태', strings.inquiryStatus.DONE), { exact: false })).toBeInTheDocument();
+    expect(first.queryByText(t.outcomes.FAILURE)).not.toBeInTheDocument();
 
     const second = within(all[2] as HTMLElement);
-    expect(second.getByText('2026-11-12 00:30')).toBeInTheDocument();
+    expect(second.getByText('2026.11.12 00:30:00')).toBeInTheDocument();
     expect(second.getByText(t.actorTypes.SYSTEM)).toBeInTheDocument();
     expect(second.queryByRole('button')).not.toBeInTheDocument();
-    expect(second.getByText(t.actions.ADMIN_LOGIN)).toBeInTheDocument();
-    expect(second.getByText(t.outcomes.FAILURE)).toHaveClass('badge--danger');
-    expect(second.queryByRole('link')).not.toBeInTheDocument();
+    expect(second.getByText(t.outcomes.FAILURE)).toBeInTheDocument();
 
     // 보여 줄 때는 label, 거를 때는 ref
     const third = within(all[3] as HTMLElement);
     expect(third.getByRole('button', { name: t.filterByActor('사용자 0123') })).toBeInTheDocument();
-    expect(third.getByText(t.target(t.targets.SYNASTRY, '5a5a5a5a'))).toBeInTheDocument();
-    expect(third.queryByRole('link')).not.toBeInTheDocument();
-    expect(third.getByText(chip('관계', '연애'))).toBeInTheDocument();
+    expect(third.getByText(chip('관계', '연애'), { exact: false })).toBeInTheDocument();
 
-    expect(lastQuery(calls)).toBe('page=0&size=20');
-    expect(screen.getByText(t.total(3))).toBeInTheDocument();
+    expect(lastQuery(calls)).toBe('from=2026-11-20&to=2026-11-20&page=0&size=20');
+    expect(screen.getByText(t.range('오늘', 3, 1, 3))).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: `${t.dateLabel} · 오늘` })).toBeInTheDocument();
+    expect(screen.getByText(t.headNote)).toBeInTheDocument();
   });
 
-  it('무엇을 남기는지 알린다: 누가 무엇을 언제만, 계정을 지워도 남는다', async () => {
-    mockFetch({ 'GET /admin/me': me, [LIST]: page() });
-    renderApp(tree, { route: '/audit-logs' });
-    expect(screen.getByText(t.note)).toBeInTheDocument();
-    expect(t.note).toMatch(/누가 무엇을 언제/);
-    expect(t.note).toMatch(/출생 정보/);
-    expect(t.note).toMatch(/계정을 지워도/);
-    await rows();
-    expect(screen.getByText(strings.common.timeZoneNote)).toBeInTheDocument();
-  });
-
-  it('대상: 관리자는 관리자 목록, 자주 묻는 질문은 그 화면으로 잇고, 앱 설정은 글자로만 보인다', async () => {
+  it('대상: 관리자는 관리자 화면, 자주 묻는 질문은 그 화면으로 잇고, 앱 설정은 글자로만 보인다', async () => {
     mockFetch({
       'GET /admin/me': me,
       [LIST]: page([
@@ -117,15 +122,26 @@ describe('감사 로그', () => {
     });
     renderApp(tree, { route: '/audit-logs' });
     const all = await rows();
-    expect(within(all[1] as HTMLElement).getByRole('link', { name: t.target(t.targets.ADMIN, '22222222') })).toHaveAttribute('href', '/admins');
-    expect(within(all[2] as HTMLElement).getByRole('link', { name: t.target(t.targets.FAQ, 'ffffffff') })).toHaveAttribute('href', '/faqs');
+    expect(within(all[1] as HTMLElement).getByRole('link', { name: t.targets.ADMIN })).toHaveAttribute('href', '/admins');
+    expect(within(all[2] as HTMLElement).getByRole('link', { name: t.targets.FAQ })).toHaveAttribute('href', '/faqs');
     const third = within(all[3] as HTMLElement);
-    expect(third.getByText(t.target(t.targets.APP_CONFIG, 'maintena'))).toBeInTheDocument();
+    expect(third.getByText(t.targets.APP_CONFIG)).toBeInTheDocument();
     expect(third.queryByRole('link')).not.toBeInTheDocument();
-    expect(third.getByText(chip('점검', '켬'))).toBeInTheDocument();
   });
 
-  it('모르는 행동·대상·결과·detail 키는 받은 그대로 보여 준다', async () => {
+  it('사용자 행의 label 이 ref(ownerRef) 그대로면 날 id 대신 "사용자 계정" — 눌러 거르기는 ref 로', async () => {
+    const { calls } = mockFetch({
+      'GET /admin/me': me,
+      [LIST]: page([auditLog({ actorType: 'USER', actor: { ref: '9e8d7c6b5a40', label: '9e8d7c6b5a40' }, action: 'INQUIRY_SUBMITTED' })]),
+    });
+    renderApp(tree, { route: '/audit-logs' });
+    const row = within((await rows())[1] as HTMLElement);
+    expect(row.queryByText('9e8d7c6b5a40')).not.toBeInTheDocument();
+    await userEvent.click(row.getByRole('button', { name: t.filterByActor(t.userAccount) }));
+    await vi.waitFor(() => expect(lastQuery(calls)).toContain('actorRef=9e8d7c6b5a40'));
+  });
+
+  it('모르는 활동 · 대상 · 결과 · detail 키는 받은 그대로 보여 준다', async () => {
     mockFetch({
       'GET /admin/me': me,
       [LIST]: page([auditLog({ action: 'COUPON_ISSUED', targetType: 'COUPON', targetId: 'c-1', outcome: 'PARTIAL', detail: { tier: 'GOLD' } })]),
@@ -133,115 +149,99 @@ describe('감사 로그', () => {
     renderApp(tree, { route: '/audit-logs' });
     const row = within((await rows())[1] as HTMLElement);
     expect(row.getByText('COUPON_ISSUED')).toBeInTheDocument();
-    expect(row.getByText(t.target('COUPON', 'c-1'))).toBeInTheDocument();
+    expect(row.getByText('COUPON')).toBeInTheDocument();
     expect(row.getByText('PARTIAL')).toBeInTheDocument();
-    expect(row.getByText(chip('tier', 'GOLD'))).toBeInTheDocument();
+    expect(row.getByText(chip('tier', 'GOLD'), { exact: false })).toBeInTheDocument();
   });
 
-  it('행동 고르기는 "관리자 행동"·"사용자 행동" 두 묶음이고 계약의 코드가 모두 있다', async () => {
+  it('활동 선택 메뉴에는 계약의 코드가 모두 있다(관리자 → 사용자 순)', async () => {
     mockFetch({ 'GET /admin/me': me, [LIST]: page() });
     renderApp(tree, { route: '/audit-logs' });
-    const select = screen.getByLabelText(t.filterAction);
-    const group = (name: string) => within(within(select).getByRole('group', { name })).getAllByRole('option') as HTMLOptionElement[];
-    expect(group(t.actionGroups.admin).map((o) => o.value)).toEqual([...AUDIT_ADMIN_ACTIONS]);
-    expect(group(t.actionGroups.user).map((o) => o.value)).toEqual([...AUDIT_USER_ACTIONS]);
-    expect(group(t.actionGroups.user)[0]).toHaveTextContent(t.actions.USER_LOGIN);
     await rows();
+    await userEvent.click(screen.getByRole('button', { name: t.actionLabel }));
+    const options = within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.textContent);
+    expect(options).toEqual([t.all, ...[...AUDIT_ADMIN_ACTIONS, ...AUDIT_USER_ACTIONS].map((code) => t.actions[code])]);
   });
 
-  it('누구·행동·날짜·계정으로 거르면 조건이 주소에 남고 그 조건으로 첫 쪽부터 다시 받는다', async () => {
+  it('주체 · 활동 · 날짜 · 계정으로 거르면 조건이 주소에 남고 1쪽부터 다시 받는다', async () => {
     const { calls } = mockFetch({ 'GET /admin/me': me, [LIST]: page([auditLog()], 41, 0) });
     const user = userEvent.setup();
     renderApp(tree, { route: '/audit-logs?page=1' });
     await rows();
 
-    await user.selectOptions(screen.getByLabelText(t.filterActorType), 'ADMIN');
+    await user.click(actorSeg().getByRole('button', { name: t.actorTypes.ADMIN }));
     await rows();
-    expect(lastQuery(calls)).toBe('actorType=ADMIN&page=0&size=20');
+    expect(lastQuery(calls)).toBe('actorType=ADMIN&from=2026-11-20&to=2026-11-20&page=0&size=20');
     expect(where()).toBe('/audit-logs?actorType=ADMIN');
 
-    await user.selectOptions(screen.getByLabelText(t.filterAction), 'INQUIRY_UPDATED');
+    await user.click(screen.getByRole('button', { name: t.actionLabel }));
+    await user.click(screen.getByRole('option', { name: t.actions.INQUIRY_UPDATED }));
     await rows();
-    expect(lastQuery(calls)).toBe('actorType=ADMIN&action=INQUIRY_UPDATED&page=0&size=20');
+    expect(lastQuery(calls)).toBe('actorType=ADMIN&action=INQUIRY_UPDATED&from=2026-11-20&to=2026-11-20&page=0&size=20');
 
-    fireEvent.change(screen.getByLabelText(t.filterFrom), { target: { value: '2026-11-10' } });
-    await rows();
-    fireEvent.change(screen.getByLabelText(t.filterTo), { target: { value: '2026-11-12' } });
+    await user.click(screen.getByRole('button', { name: `${t.dateLabel} · 오늘` }));
+    await user.clear(screen.getByLabelText(strings.picker.start));
+    await user.type(screen.getByLabelText(strings.picker.start), '2026.11.10');
+    await user.clear(screen.getByLabelText(strings.picker.end));
+    await user.type(screen.getByLabelText(strings.picker.end), '2026.11.12');
+    await user.tab();
+    await user.click(screen.getByRole('button', { name: strings.picker.apply }));
     await rows();
     expect(lastQuery(calls)).toBe('actorType=ADMIN&action=INQUIRY_UPDATED&from=2026-11-10&to=2026-11-12&page=0&size=20');
+    expect(screen.getByRole('button', { name: `${t.dateLabel} · 2026.11.10 ~ 11.12` })).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText(t.filterActorRef), ' Root-Admin ');
-    await user.click(screen.getByRole('button', { name: t.actorRefApply }));
-    await rows();
-    expect(lastQuery(calls)).toBe('actorType=ADMIN&action=INQUIRY_UPDATED&from=2026-11-10&to=2026-11-12&actorRef=Root-Admin&page=0&size=20');
-    expect(where()).toBe('/audit-logs?actorType=ADMIN&action=INQUIRY_UPDATED&from=2026-11-10&to=2026-11-12&actorRef=Root-Admin');
-
-    await user.selectOptions(screen.getByLabelText(t.filterActorType), '');
-    await rows();
-    await user.clear(screen.getByLabelText(t.filterActorRef));
-    await user.click(screen.getByRole('button', { name: t.actorRefApply }));
-    await rows();
-    expect(lastQuery(calls)).toBe('action=INQUIRY_UPDATED&from=2026-11-10&to=2026-11-12&page=0&size=20');
+    await user.type(screen.getByRole('searchbox', { name: t.searchLabel }), ' 새벽별 ');
+    await vi.waitFor(() => expect(lastQuery(calls)).toBe('q=%EC%83%88%EB%B2%BD%EB%B3%84&actorType=ADMIN&action=INQUIRY_UPDATED&from=2026-11-10&to=2026-11-12&page=0&size=20'));
   });
 
-  it('주소의 조건으로 받고 칸에 그 값을 채운다', async () => {
+  it('한 계정을 찾을 때(찾기 · 활동 기록 링크)는 날짜를 오늘로 묶지 않는다', async () => {
+    const { calls } = mockFetch({ 'GET /admin/me': me, [LIST]: page() });
+    renderApp(tree, { route: '/audit-logs?actorType=USER&actorRef=0123456789ab' });
+    await rows();
+    expect(lastQuery(calls)).toBe('actorType=USER&actorRef=0123456789ab&page=0&size=20');
+    expect(screen.getByText(t.range(t.allDates, 1, 1, 1))).toBeInTheDocument();
+  });
+
+  it('주소의 조건으로 받고 버튼 · 칸에 그 값을 보인다', async () => {
     const { calls } = mockFetch({ 'GET /admin/me': me, [LIST]: page([userRow], 61, 2) });
     renderApp(tree, { route: '/audit-logs?actorType=USER&action=SYNASTRY_CREATED&from=2026-11-01&to=2026-11-12&actorRef=0123456789ab&page=2' });
     await rows();
     expect(lastQuery(calls)).toBe('actorType=USER&action=SYNASTRY_CREATED&from=2026-11-01&to=2026-11-12&actorRef=0123456789ab&page=2&size=20');
-    expect(screen.getByLabelText(t.filterActorType)).toHaveValue('USER');
-    expect(screen.getByLabelText(t.filterAction)).toHaveValue('SYNASTRY_CREATED');
-    expect(screen.getByLabelText(t.filterFrom)).toHaveValue('2026-11-01');
-    expect(screen.getByLabelText(t.filterTo)).toHaveValue('2026-11-12');
-    expect(screen.getByLabelText(t.filterActorRef)).toHaveValue('0123456789ab');
-    expect(screen.getByText(t.position(3, 4))).toBeInTheDocument();
+    expect(actorSeg().getByRole('button', { name: t.actorTypes.USER })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: `${t.actionLabel} · ${t.actions.SYNASTRY_CREATED}` })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: `${t.dateLabel} · 2026.11.01 ~ 11.12` })).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: t.searchLabel })).toHaveValue('0123456789ab');
+    expect(screen.getByRole('button', { name: strings.pager.page(3) })).toHaveAttribute('aria-current', 'page');
   });
 
-  it('주소의 틀린 값(소문자 · 모르는 행동 · 없는 날 · 음수 쪽)은 보내지 않는다', async () => {
+  it('주소의 틀린 값(소문자 · 모르는 활동 · 없는 날 · 음수 쪽)은 보내지 않는다', async () => {
     const { calls } = mockFetch({ 'GET /admin/me': me, [LIST]: page() });
     renderApp(tree, { route: '/audit-logs?actorType=admin&action=NOPE&from=2026-02-30&to=2026-11-1&actorRef=%20&page=-1' });
     await rows();
-    expect(lastQuery(calls)).toBe('page=0&size=20');
+    expect(lastQuery(calls)).toBe('from=2026-11-20&to=2026-11-20&page=0&size=20');
   });
 
-  it('줄의 "누가" 를 누르면 그 actor.ref 로 거른다', async () => {
+  it('줄의 계정을 누르면 그 actor.ref 로 거른다', async () => {
     const { calls } = mockFetch({ 'GET /admin/me': me, [LIST]: page([userRow], 41, 1) });
-    renderApp(tree, { route: '/audit-logs?from=2026-11-01&page=1' });
+    renderApp(tree, { route: '/audit-logs?from=2026-11-01&to=2026-11-20&page=1' });
     await rows();
     await userEvent.click(screen.getByRole('button', { name: t.filterByActor('사용자 0123') }));
     await rows();
-    expect(lastQuery(calls)).toBe('from=2026-11-01&actorRef=0123456789ab&page=0&size=20');
-    expect(where()).toBe('/audit-logs?from=2026-11-01&actorRef=0123456789ab');
-    expect(screen.getByLabelText(t.filterActorRef)).toHaveValue('0123456789ab');
+    expect(lastQuery(calls)).toBe('from=2026-11-01&to=2026-11-20&actorRef=0123456789ab&page=0&size=20');
+    expect(screen.getByRole('searchbox', { name: t.searchLabel })).toHaveValue('0123456789ab');
   });
 
-  it('쪽을 넘긴다: 조건은 그대로 두고 처음·끝에서는 막는다', async () => {
-    const { calls, routes } = mockFetch({ 'GET /admin/me': me, [LIST]: page([auditLog()], 41, 0) });
-    renderApp(tree, { route: '/audit-logs?actorType=ADMIN' });
-    expect(await screen.findByText(t.position(1, 3))).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: t.prev })).toBeDisabled();
-    routes[LIST] = page([auditLog()], 41, 1);
-    await userEvent.click(screen.getByRole('button', { name: t.next }));
-    expect(await screen.findByText(t.position(2, 3))).toBeInTheDocument();
-    expect(lastQuery(calls)).toBe('actorType=ADMIN&page=1&size=20');
-    expect(where()).toBe('/audit-logs?actorType=ADMIN&page=1');
-    routes[LIST] = page([auditLog()], 41, 2);
-    await userEvent.click(screen.getByRole('button', { name: t.next }));
-    expect(await screen.findByText(t.position(3, 3))).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: t.next })).toBeDisabled();
-    expect(screen.getByRole('button', { name: t.prev })).toBeEnabled();
-  });
-
-  it('비어 있으면 알리고, 마지막 쪽을 넘었으면 앞쪽으로 돌아갈 수 있다', async () => {
-    const { routes } = mockFetch({ 'GET /admin/me': me, [LIST]: page([]) });
+  it('날짜를 고르지 않았으면 오늘 것만(D10 "날짜 · 오늘"), 처음부터 비면 안내만 · 거른 결과가 비면 초기화 버튼', async () => {
+    const { routes, calls } = mockFetch({ 'GET /admin/me': me, [LIST]: page([]) });
     const view = renderApp(tree, { route: '/audit-logs' });
-    expect(await screen.findByText(t.empty)).toBeInTheDocument();
-    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(await screen.findByText(t.empty.title)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: strings.empty.reset })).not.toBeInTheDocument();
     view.unmount();
-    routes[LIST] = page([], 20, 1);
-    renderApp(tree, { route: '/audit-logs?page=1' });
-    expect(await screen.findByText(t.emptyPage)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: t.prev })).toBeEnabled();
+    routes[LIST] = page([]);
+    renderApp(tree, { route: '/audit-logs?actorType=ADMIN' });
+    expect(await screen.findByText(t.emptyFiltered.title)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: strings.empty.reset }));
+    await vi.waitFor(() => expect(lastQuery(calls)).toBe('from=2026-11-20&to=2026-11-20&page=0&size=20'));
   });
 
   it.each([
