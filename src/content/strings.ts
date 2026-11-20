@@ -415,13 +415,34 @@ export const strings = {
   },
 
   shell: {
+    brand: '별명',
     navLabel: '주요 메뉴',
-    nav: { stats: '현황', inquiries: '문의', faqs: '자주 묻는 질문', admins: '관리자', auditLogs: '감사 로그', appConfig: '앱 설정' },
+    /** 메뉴 묶음(결정 003 의 1) */
+    groups: { support: '고객 지원', content: '소식 · 글', operations: '운영 설정' },
+    nav: {
+      stats: '현황',
+      inquiries: '문의',
+      users: '사용자',
+      push: '푸시 발송',
+      faqs: '자주 묻는 질문',
+      appConfig: '앱 설정',
+      admins: '관리자',
+      auditLogs: '감사 로그',
+    },
+    waiting: (n: number) => `답변 대기 ${n.toLocaleString('ko-KR')}건`,
     accountLabel: '로그인한 관리자',
+    who: (loginId: string) => `관리자 · ${loginId}`,
     changePassword: '비밀번호 변경',
     logout: '로그아웃',
-    meError: '내 정보를 받지 못했어요.',
-    maintenanceBanner: '점검 중 — 사용자는 앱을 쓸 수 없어요',
-    maintenanceLink: '앱 설정에서 끄기',
+    meError: '관리자 정보를 불러오지 못했습니다.',
+    menuOpen: '메뉴 열기',
+    menuTitle: '메뉴',
+    menuClose: '메뉴 닫기',
+    maintenance: {
+      title: '점검 모드 사용 중',
+      body: (time: string, by: string | null) =>
+        by === null ? `앱 · 웹에 점검 화면이 표시되고 있습니다. ${time} 시작` : `앱 · 웹에 점검 화면이 표시되고 있습니다. ${time} 시작 · ${by}`,
+      link: '앱 설정에서 해제',
+    },
   },
 } as const;

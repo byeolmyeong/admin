@@ -1,34 +1,62 @@
 /*
- * 디자인 값의 단일 출처. 앱(byeolmyeong-app)의 src/constants/theme.ts 와 같은 값이다(앱 결정 018):
- * 흰 바탕, 중립 회색, Pretendard, 주색은 초록 하나. 화면 스타일(app.css)은 색·글자·간격을 여기서만 가져온다.
- * 데스크톱에 맞춰 더한 값(메뉴 폭 · 작은 버튼 높이 등)은 "관리 화면" 묶음에 따로 적었다.
+ * 디자인 값의 단일 출처(어드민 결정 003 의 3 — 밝은 테마, 시안 B).
+ * 바탕 #F5F6F8 · 카드 흰색 · 주 색 #4752FF(앱 결정 033 의 보라) · Pretendard.
+ * 화면 스타일(app.css · components.css)은 색 · 글자 · 간격 · 크기를 여기서만 가져온다.
  */
 :root {
-  /* 색 */
+  /* 색 — 바탕과 면 */
+  --color-bg: #f5f6f8;
   --color-paper: #ffffff;
-  --color-ink: #191919;
-  --color-gray: #6a6a6a;
-  --color-hint: #989898;
-  --color-muted: #c6c6c6;
-  --color-hair: #e6e6e6;
-  --color-fill: #f6f6f6;
-  --color-primary: #3ddb99;
-  --color-primary-light: #ecfbf5;
-  --color-danger: #f73838;
-  --color-dim: rgba(0, 0, 0, 0.4);
+  --color-hair: #e4e5ea;
+  --color-fill: #f0f1f4;
 
-  /* 글자: 크기 / 줄높이 / 굵기. 글자 사이는 크기의 -2% */
+  /* 색 — 글 */
+  --color-ink: #16171d;
+  --color-gray: #5b5d68;
+  --color-hint: #8a8c96;
+  --color-muted: #b7b9c2;
+
+  /* 색 — 주 색과 상태 */
+  --color-primary: #4752ff;
+  --color-primary-light: rgba(71, 82, 255, 0.08);
+  --color-primary-ink: #3843f4;
+  --color-primary-tint: #eef0ff;
+  --color-good: #169b64;
+  --color-good-light: rgba(22, 155, 100, 0.1);
+  --color-danger: #e5484d;
+  --color-danger-light: rgba(229, 72, 77, 0.1);
+  --color-warn: #b7791f;
+  --color-warn-light: rgba(245, 166, 35, 0.12);
+  --color-warn-line: rgba(183, 121, 31, 0.25);
+  --color-on-primary: #ffffff;
+
+  /* 색 — 겹쳐 뜨는 것 */
+  --color-dim: rgba(22, 23, 29, 0.45);
+  --color-toast: #1f2028;
+  --color-toast-ink: #f2f3f7;
+  --shadow-pop: 0 12px 32px rgba(22, 23, 29, 0.12);
+  --shadow-dialog: 0 20px 60px rgba(0, 0, 0, 0.18);
+  --shadow-toast: 0 10px 30px rgba(0, 0, 0, 0.25);
+  --shadow-segment: 0 1px 2px rgba(0, 0, 0, 0.06);
+
+  /* 글자: 크기 / 줄높이 / 굵기 */
   --font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-  --letter-spacing: -0.02em;
-  --type-title: 700 24px/34px var(--font-family);
-  --type-heading: 600 18px/25px var(--font-family);
-  --type-button: 600 16px/24px var(--font-family);
-  --type-body: 400 15px/23px var(--font-family);
-  --type-table: 500 14px/20px var(--font-family);
-  --type-label: 500 12px/16px var(--font-family);
-  --type-number: 600 24px/34px var(--font-family);
+  --letter-spacing: -0.01em;
+  --type-title: 600 20px/28px var(--font-family);
+  --type-brand: 600 17px/24px var(--font-family);
+  --type-heading: 600 15px/22px var(--font-family);
+  --type-body: 400 14px/22px var(--font-family);
+  --type-body-strong: 600 14px/22px var(--font-family);
+  --type-table: 400 13px/20px var(--font-family);
+  --type-button: 600 13px/20px var(--font-family);
+  --type-button-large: 600 14px/20px var(--font-family);
+  --type-label: 600 12px/16px var(--font-family);
+  --type-small: 400 12px/18px var(--font-family);
+  --type-group: 600 11px/16px var(--font-family);
+  --type-number: 600 28px/36px var(--font-family);
+  --type-number-small: 600 22px/28px var(--font-family);
 
-  /* 간격 4 · 8 · 12 · 16 · 24 · 32 · 48 */
+  /* 간격 */
   --space-xxs: 4px;
   --space-xs: 8px;
   --space-sm: 12px;
@@ -36,31 +64,43 @@
   --space-lg: 24px;
   --space-xl: 32px;
   --space-xxl: 48px;
+  --space-page-y: 28px;
 
   /* 모서리 · 선 */
-  --radius: 12px;
+  --radius-small: 8px;
+  --radius: 10px;
+  --radius-pop: 12px;
   --radius-card: 16px;
+  --radius-sheet: 20px;
+  --radius-pill: 999px;
   --line: 1px;
 
   /* 부품 크기 */
-  --size-button: 56px;
-  --size-input: 56px;
-  --size-row: 48px;
-  --size-app-width: 390px;
-
-  /* 관리 화면(데스크톱)에 맞춰 더한 값 */
-  --size-side: 240px;
-  --size-content: 1120px;
-  --size-narrow: 480px;
-  --size-control-small: 40px;
-  --size-tile-min: 220px;
-  --size-detail-side: 360px;
-  --size-dialog: 420px;
-  --size-card-min: 360px;
-  --size-switch-width: 44px;
+  --size-input: 42px;
+  --size-button: 38px;
+  --size-button-large: 46px;
+  --size-chip: 30px;
+  --size-pill: 26px;
+  --size-menu-item: 40px;
+  --size-pop-item: 36px;
+  --size-sheet-item: 52px;
+  --size-page-button: 32px;
+  --size-icon-button: 32px;
+  --size-switch-width: 40px;
   --size-switch-height: 24px;
-  --size-switch-knob: 20px;
-  --radius-pill: 999px;
-  --focus-ring: 2px solid var(--color-ink);
+  --size-switch-knob: 18px;
+
+  /* 화면 틀(결정 003 의 4 — 1024 이상 넓은 메뉴, 640 ~ 1023 아이콘 띠, 640 아래 위 막대 + 서랍) */
+  --size-side: 232px;
+  --size-rail: 72px;
+  --size-top: 64px;
+  --size-mobile-top: 56px;
+  --size-drawer: 300px;
+  --size-content: 1376px;
+  --size-dialog: 460px;
+  --size-login: 400px;
+  --size-detail-side: 340px;
+
+  --focus-ring: 2px solid var(--color-primary);
   --focus-offset: 2px;
 }

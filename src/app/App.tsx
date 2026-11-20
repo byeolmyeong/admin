@@ -7,17 +7,18 @@ import { LoginPage } from '../features/auth/LoginPage';
 import { RequireAuth } from '../features/auth/RequireAuth';
 import { apiBaseUrl } from '../lib/config';
 import { AppShell } from './AppShell';
-import { sections } from './sections';
+import { visibleSections } from './sections';
 
 /** 라우트 표. 구역의 화면은 sections 에서 온다. 로그인 말고는 모두 세션이 필요하다. */
 export function AppRoutes() {
-  const home = sections[0]?.to ?? '/login';
+  const shown = visibleSections();
+  const home = shown[0]?.to ?? '/login';
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
-          {sections.flatMap((section) => section.routes.map((route) => <Route key={route.path} path={route.path} element={route.element} />))}
+          {shown.flatMap((section) => section.routes.map((route) => <Route key={route.path} path={route.path} element={route.element} />))}
           <Route path="/password" element={<PasswordPage />} />
           <Route path="*" element={<Navigate to={home} replace />} />
         </Route>

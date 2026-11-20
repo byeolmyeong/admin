@@ -34,7 +34,7 @@ export const faq = (over: Partial<Faq> = {}): Faq => ({
   ...over,
 });
 
-export const stats = (): Stats => ({
+export const stats = (over: Partial<Stats> = {}): Stats => ({
   generatedAt: '2026-11-12T04:05:06Z',
   accounts: { total: 120, last7Days: 7, last30Days: 30 },
   profiles: { total: 101 },
@@ -44,6 +44,7 @@ export const stats = (): Stats => ({
   synastryReports: { total: 12, byStatus: { DONE: 10, WRITING: 1, FAILED: 1 } },
   directions: { total: 9, byTopic: { LOVE: 9 } },
   inquiries: { total: 6, byStatus: { NEW: 3, IN_PROGRESS: 2, DONE: 1 } },
+  ...over,
 });
 
 /** 로그인 응답. expiresAt 은 먼 미래로 둔다(만료 테스트는 따로 정한다). */
