@@ -237,14 +237,17 @@ export interface UserPage {
 
 export interface UserDetail extends UserRow {
   consents: { termsVersion: string | null; privacyVersion: string | null; pushAt: string | null; marketingAt: string | null };
-  todaySky: { on: boolean; time: string | null };
+  /** 오늘의 하늘 알림 — 서버 푸시 묶음(결정 042)이 더한다. 그 전에는 없다. */
+  todaySky?: { on: boolean; time: string | null } | null;
   birth: { registered: boolean; hasTime: boolean; hasPlace: boolean };
   /** kind: NICKNAME · REPORT_ME · REPORT_TIMING · TODAY_SKY, status: DONE · FAILED · GENERATING · PREBUILT … */
   generations: { kind: string; status: string; at: string | null }[];
-  devices: { platform: string; appVersion: string | null; lastSeenAt: string | null }[];
+  /** 등록 기기 — 서버 푸시 묶음(결정 042)이 더한다. 그 전에는 없다. */
+  devices?: { platform: string; appVersion: string | null; lastSeenAt: string | null }[] | null;
   inquiries: { id: string; category: string; status: string; createdAt: string; excerpt?: string | null }[];
   recent: { at: string; action: string; detail?: string | null }[];
-  suspension: { at: string; by: string | null; reason: string } | null;
+  /** by 는 정지한 관리자(없어졌으면 null) */
+  suspension: { at: string; by: AdminRef | null; reason: string } | null;
 }
 
 /** 현황 v2(결정 043 의 3). 서버가 붙기 전에는 모두 없을 수 있다. */

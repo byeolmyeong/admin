@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adminAccount, admin, appConfig, auditLog, faq, inquiry, loginResult, maintenance, platformConfig, stats } from '../../test/fixtures';
+import { adminAccount, admin, appConfig, auditLog, faq, inquiry, loginResult, maintenance, platformConfig, stats, userDetail } from '../../test/fixtures';
 import {
   arrayOf,
   isAdmin,
@@ -13,8 +13,7 @@ import {
   isLoginResult,
   isMaintenance,
   isPlatformConfig,
-  isStats,
-} from './guards';
+  isStats, isUserDetail } from './guards';
 
 describe('guards', () => {
   it('Admin · AdminAccount · LoginResult', () => {
@@ -160,5 +159,18 @@ describe('isStats(서버 S⑪ 계약)', () => {
     expect(isStats(v2)).toBe(true);
     expect(isStats({ ...v2, failuresToday: { nickname: null, report: null } })).toBe(false);
     expect(isStats({ ...v2, inquiryQueue: { waiting: -1, oldestWaitingAt: null } })).toBe(false);
+  });
+});
+
+describe('isUserDetail(S⑪ 계약)', () => {
+  it('오늘의 하늘 · 기기가 없어도(푸시 묶음 전) 받고, 정지한 관리자는 { id, name } 또는 null', () => {
+    const withoutPush: Record<string, unknown> = { ...userDetail() };
+    delete withoutPush.todaySky;
+    delete withoutPush.devices;
+    expect(isUserDetail(withoutPush)).toBe(true);
+    expect(isUserDetail({ ...withoutPush, suspension: { at: '2026-11-18T02:02:26Z', by: { id: 'a1', name: 'lee' }, reason: '문의 도배' } })).toBe(true);
+    expect(isUserDetail({ ...withoutPush, suspension: { at: '2026-11-18T02:02:26Z', by: null, reason: '문의 도배' } })).toBe(true);
+    expect(isUserDetail({ ...withoutPush, suspension: { at: '2026-11-18T02:02:26Z', by: 'lee', reason: '문의 도배' } })).toBe(false);
+    expect(isUserDetail({ ...withoutPush, devices: [{ platform: 1 }] })).toBe(false);
   });
 });

@@ -141,7 +141,7 @@ function Detail({ user, onReload }: { user: UserDetail; onReload: () => void }) 
             <span className="banner__dot suspended__dot" aria-hidden="true" />
             {t.suspendedTitle}
           </p>
-          <p>{t.suspendedLine(formatKst(user.suspension.at), user.suspension.by ?? strings.users.none, user.suspension.reason)}</p>
+          <p>{t.suspendedLine(formatKst(user.suspension.at), user.suspension.by?.name ?? strings.users.none, user.suspension.reason)}</p>
           <p className="field__help">{t.suspendedNote}</p>
         </section>
       )}
@@ -160,7 +160,7 @@ function Detail({ user, onReload }: { user: UserDetail; onReload: () => void }) 
               <dt>{t.marketing}</dt>
               <dd>{c.marketingAt ? t.agreed(formatKst(c.marketingAt)) : t.notAgreed}</dd>
               <dt>{t.todaySky}</dt>
-              <dd>{user.todaySky.on ? t.on(clock(user.todaySky.time)) : t.off}</dd>
+              <dd>{user.todaySky ? (user.todaySky.on ? t.on(clock(user.todaySky.time)) : t.off) : strings.users.none}</dd>
               <dt>{t.birth}</dt>
               <dd>
                 {birth.registered ? (
@@ -201,7 +201,10 @@ function Detail({ user, onReload }: { user: UserDetail; onReload: () => void }) 
             <h2 className="sec-title" id="devices-title">
               {t.devices}
             </h2>
-            {user.devices.length === 0 ? (
+            {/* 서버 푸시 묶음 전에는 devices 가 없다 — "—" */}
+            {!user.devices ? (
+              <p className="field__help">{strings.users.none}</p>
+            ) : user.devices.length === 0 ? (
               <p className="field__help">{t.noDevices}</p>
             ) : (
               <ul className="plain-list">
