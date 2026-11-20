@@ -207,6 +207,7 @@ describe('앱 설정 — 플랫폼(D6)', () => {
 
   it.each([
     ['INVALID_VERSION', t.errors.INVALID_VERSION],
+    ['INVALID_LATEST_VERSION', t.errors.INVALID_LATEST_VERSION],
     ['LATEST_BELOW_MIN', t.errors.LATEST_BELOW_MIN],
     ['INVALID_STORE_URL', t.errors.INVALID_STORE_URL],
     ['BLOCK_REQUIRES_MIN_VERSION', t.errors.BLOCK_REQUIRES_MIN_VERSION],

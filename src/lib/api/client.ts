@@ -26,6 +26,8 @@ export interface ClientOptions {
   getToken: () => string | null;
   /** 세션이 필요한 호출이 401 을 받았을 때(토큰을 버리고 로그인 화면으로 보낸다). */
   onUnauthorized: () => void;
+  /** 임시 비밀번호인 동안 서버가 403 PASSWORD_CHANGE_REQUIRED 로 막았을 때(첫 로그인 비밀번호 변경 화면으로 보낸다). */
+  onPasswordChangeRequired?: () => void;
 }
 
 export interface RequestOptions<T> {
@@ -54,7 +56,7 @@ const readErrorCode = async (response: Response): Promise<string> => {
   return 'UNKNOWN';
 };
 
-export const createClient = ({ baseUrl, getToken, onUnauthorized }: ClientOptions): Client => ({
+export const createClient = ({ baseUrl, getToken, onUnauthorized, onPasswordChangeRequired }: ClientOptions): Client => ({
   async request<T>(method: Method, path: string, options: RequestOptions<T> = {}): Promise<T> {
     const { body, guard, auth = true } = options;
     const headers: Record<string, string> = {};
@@ -83,6 +85,7 @@ export const createClient = ({ baseUrl, getToken, onUnauthorized }: ClientOption
     if (!response.ok) {
       const code = await readErrorCode(response);
       if (response.status === 401 && auth) onUnauthorized();
+      if (response.status === 403 && auth && code === 'PASSWORD_CHANGE_REQUIRED') onPasswordChangeRequired?.();
       throw new ApiError('http', response.status, code);
     }
     if (!guard) return undefined as T;

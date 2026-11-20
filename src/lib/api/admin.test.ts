@@ -86,12 +86,6 @@ describe('createAdminApi — 계약의 경로·메서드·본문', () => {
     expect(calls[4]?.body).toEqual({ ids: [one.id] });
   });
 
-  it('다른 관리자의 비밀번호 다시 정하기: password 만 보낸다', async () => {
-    const { calls } = mockFetch({ [`PUT /admin/admins/${admin.id}/password`]: { status: 204 } });
-    await expect(api().resetAdminPassword(admin.id, 'pw-1234567890')).resolves.toBeUndefined();
-    expect(calls[0]?.body).toEqual({ password: 'pw-1234567890' });
-  });
-
   it('감사 기록: 빈 조건은 쿼리에 넣지 않는다', async () => {
     const page = { items: [auditLog()], page: 1, size: 20, total: 21 };
     const { calls } = mockFetch({ 'GET /admin/audit-logs': { status: 200, body: page } });

@@ -57,6 +57,15 @@ describe('createClient', () => {
     expect(onUnauthorized).toHaveBeenCalledTimes(1);
   });
 
+  it('403 PASSWORD_CHANGE_REQUIRED 는 onPasswordChangeRequired 를 부르고, 다른 403 은 부르지 않는다', async () => {
+    const onPasswordChangeRequired = vi.fn();
+    const client = createClient({ baseUrl: 'http://api.test', getToken: () => 'tok', onUnauthorized: vi.fn(), onPasswordChangeRequired });
+    mockFetch({ 'GET /admin/stats': { status: 403, body: { error: 'PASSWORD_CHANGE_REQUIRED' } }, 'GET /admin/faqs': { status: 403, body: { error: 'FORBIDDEN' } } });
+    await expect(client.request('GET', '/admin/stats')).rejects.toMatchObject({ status: 403, code: 'PASSWORD_CHANGE_REQUIRED' });
+    await expect(client.request('GET', '/admin/faqs')).rejects.toMatchObject({ status: 403 });
+    expect(onPasswordChangeRequired).toHaveBeenCalledTimes(1);
+  });
+
   it('토큰이 없으면 서버를 부르지 않고 UNAUTHORIZED', async () => {
     const { fn } = mockFetch({});
     const { client, onUnauthorized } = make(null);
