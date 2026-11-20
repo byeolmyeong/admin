@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Notice } from '../components/Feedback';
+import { UiProvider } from '../components/UiProvider';
 import { strings } from '../content/strings';
 import { PasswordPage } from '../features/admins/PasswordPage';
 import { AuthProvider } from '../features/auth/AuthContext';
@@ -39,7 +40,9 @@ export function App() {
   return (
     <BrowserRouter>
       <AuthProvider baseUrl={baseUrl}>
-        <AppRoutes />
+        <UiProvider>
+          <AppRoutes />
+        </UiProvider>
       </AuthProvider>
     </BrowserRouter>
   );

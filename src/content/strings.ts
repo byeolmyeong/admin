@@ -18,6 +18,46 @@ export const strings = {
     counter: (n: number, max: number) => `${n.toLocaleString('ko-KR')} / ${max.toLocaleString('ko-KR')}자`,
   },
 
+  /** 공용 부품의 글(결정 003 의 5 · 6 · 7) */
+  pager: {
+    label: '쪽 이동',
+    range: (total: number, from: number, to: number) =>
+      total === 0 ? '0개' : `${total.toLocaleString('ko-KR')}개 중 ${from.toLocaleString('ko-KR')}–${to.toLocaleString('ko-KR')}`,
+    page: (n: number) => `${n}쪽`,
+    prevGroup: '이전 10쪽',
+    nextGroup: '다음 10쪽',
+    size: (n: number) => `${n}개씩`,
+    sizeLabel: '페이지당 개수',
+  },
+  picker: {
+    today: '오늘',
+    start: '시작일',
+    end: '종료일',
+    placeholder: '2026.11.01',
+    apply: '적용',
+    cancel: '취소',
+    prevMonth: '이전 달',
+    nextMonth: '다음 달',
+    month: (year: number, month: number) => `${year}년 ${month}월`,
+    weekdays: ['일', '월', '화', '수', '목', '금', '토'],
+    invalid: '2026.11.01 형식으로 입력합니다.',
+    future: '오늘 이후 날짜는 선택할 수 없습니다.',
+    tooLong: '기간은 최대 1년까지 선택할 수 있습니다.',
+  },
+  menus: {
+    more: '더 보기',
+  },
+  search: {
+    clear: '검색어 지우기',
+  },
+  empty: {
+    reset: '검색 · 필터 초기화',
+  },
+  toast: {
+    saved: '저장했습니다',
+    saveFailed: '저장하지 못했습니다. 다시 시도해 주세요.',
+  },
+
   /** 어느 화면에서나 같은 뜻인 오류. 화면마다 다른 코드는 그 화면의 errors 에 있다. */
   errors: {
     NETWORK: '서버에 연결하지 못했어요. 인터넷 연결과 서버 주소, 서버의 허용 출처 설정을 확인해 주세요.',

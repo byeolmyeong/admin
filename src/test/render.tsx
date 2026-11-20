@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
+import { UiProvider } from '../components/UiProvider';
 import { AuthProvider } from '../features/auth/AuthContext';
 import { saveSession } from '../lib/session';
 
@@ -16,7 +17,9 @@ export const renderApp = (ui: ReactNode, { route = '/', signedIn = true, expires
   if (signedIn) saveSession({ token: 'tok-test', expiresAt });
   return render(
     <MemoryRouter initialEntries={[route]}>
-      <AuthProvider baseUrl="http://api.test">{ui}</AuthProvider>
+      <AuthProvider baseUrl="http://api.test">
+        <UiProvider>{ui}</UiProvider>
+      </AuthProvider>
     </MemoryRouter>,
   );
 };
