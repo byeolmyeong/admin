@@ -153,6 +153,15 @@ describe('guards — v2(서버가 아직 주지 않는 필드는 없어도 통�
   });
 });
 
+describe('isStats(서버 S⑪ 계약)', () => {
+  it('detailReports · inquiryQueue 를 읽고, 오늘의 하늘 · 푸시 null 과 별명 실패 null 을 받는다', () => {
+    const v2 = { ...stats(), detailReports: { me: 1, timing: 2, generating: 0 }, inquiryQueue: { waiting: 3, oldestWaitingAt: null }, todaySky: null, pushToday: null, failuresToday: { nickname: null, report: 2 } };
+    expect(isStats(v2)).toBe(true);
+    expect(isStats({ ...v2, failuresToday: { nickname: null, report: null } })).toBe(false);
+    expect(isStats({ ...v2, inquiryQueue: { waiting: -1, oldestWaitingAt: null } })).toBe(false);
+  });
+});
+
 describe('isUserDetail(S⑪ 계약)', () => {
   it('오늘의 하늘 · 기기가 없어도(푸시 묶음 전) 받고, 정지한 관리자는 { id, name } 또는 null', () => {
     const withoutPush: Record<string, unknown> = { ...userDetail() };

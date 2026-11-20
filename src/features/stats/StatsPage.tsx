@@ -47,12 +47,12 @@ function Kpis({ stats, now }: { stats: Stats; now: number }) {
   const users = stats.users;
   const total = users?.total ?? stats.accounts.total;
   const nicknames = stats.nicknames?.total ?? stats.readings.total;
-  const r = stats.reports;
-  const reportsTotal = r.me !== undefined && r.timing !== undefined ? r.me + r.timing : undefined;
+  const r = stats.detailReports;
+  const reportsTotal = r ? r.me + r.timing : undefined;
   const sky = stats.todaySky;
   const fail = stats.failuresToday;
   const push = stats.pushToday;
-  const oldest = stats.inquiries.oldestWaitingAt;
+  const oldest = stats.inquiryQueue?.oldestWaitingAt;
   const consents = stats.consents;
   return (
     <div className="kpis">
@@ -71,14 +71,15 @@ function Kpis({ stats, now }: { stats: Stats; now: number }) {
         }
       />
       <Kpi label={t.kpi.nicknames} icon="stats" value={n(nicknames)} sub={t.ratioSub(percent(nicknames, total))} />
-      <Kpi label={t.kpi.reports} icon="help" value={n(reportsTotal)} sub={t.reportsSub(n(r.me), n(r.timing), n(r.generating))} />
+      <Kpi label={t.kpi.reports} icon="help" value={n(reportsTotal)} sub={t.reportsSub(n(r?.me), n(r?.timing), n(r?.generating))} />
       <Kpi label={t.kpi.todaySky} icon="bell" value={n(sky?.today)} sub={t.todaySkySub(n(sky?.onDemand), n(sky?.prebuilt))} />
       <Kpi
         label={t.kpi.failures}
         icon="log"
-        value={n(fail ? fail.nickname + fail.report : undefined)}
-        sub={t.failuresSub(n(fail?.nickname), n(fail?.report))}
-        danger={fail !== undefined && fail.nickname + fail.report > 0}
+        // 별명 실패는 서버가 셀 수 없어 null — 그때는 자세한 풀이 실패만 더한다
+        value={n(fail ? (fail.nickname ?? 0) + fail.report : undefined)}
+        sub={t.failuresSub(n(fail?.nickname ?? undefined), n(fail?.report))}
+        danger={fail !== undefined && (fail.nickname ?? 0) + fail.report > 0}
       />
       <Kpi
         label={t.kpi.push}
@@ -96,7 +97,7 @@ function Kpis({ stats, now }: { stats: Stats; now: number }) {
       <Kpi
         label={t.kpi.waiting}
         icon="inbox"
-        value={n(stats.inquiries.waiting ?? waitingOf(stats))}
+        value={n(waitingOf(stats))}
         sub={oldest ? t.waitingSub(Math.max(0, Math.floor((now - Date.parse(oldest)) / DAY))) : t.none}
       />
       <Kpi
@@ -110,6 +111,18 @@ function Kpis({ stats, now }: { stats: Stats; now: number }) {
 }
 
 const RANGES: ActiveRange[] = ['today', 'week', 'month'];
+const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** 서버의 점 이름(시 "00"~"23" · 한국 날짜 "YYYY-MM-DD")을 시안의 막대 이름으로. 모르는 꼴은 그대로. */
+const barLabel = (range: ActiveRange, label: string, last: boolean): string => {
+  const a = t.active;
+  if (range === 'today' && /^\d{1,2}$/.test(label)) return a.hour(Number(label));
+  const date = DATE.exec(label);
+  if (!date) return label;
+  if (range === 'month') return a.day(Number(date[3]));
+  if (last) return a.todayBar;
+  return a.weekdays[new Date(Date.UTC(Number(date[1]), Number(date[2]) - 1, Number(date[3]))).getUTCDay()] ?? label;
+};
 
 /** 접속(D1): 오늘(시간대별) · 이번 주 · 이번 달(날짜별), 접속자 · 하루 평균 · 지난 기간보다. */
 function Active() {
@@ -152,7 +165,7 @@ function Active() {
               <span className="bars__track">
                 <span className="bars__bar" style={{ height: `${Math.max(2, (p.value / max) * 100)}%` }} />
               </span>
-              <span className="bars__label">{!many || i % 3 === 0 || i === data.points.length - 1 ? p.label : ''}</span>
+              <span className="bars__label">{!many || i % 3 === 0 || i === data.points.length - 1 ? barLabel(range, p.label, i === data.points.length - 1) : ''}</span>
             </span>
           ))}
         </div>

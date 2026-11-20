@@ -76,6 +76,27 @@ describe('현황(D1)', () => {
     expect(callsTo(calls, 'GET /admin/stats/active').map((c) => c.query.get('range'))).toEqual(['week', 'month']);
   });
 
+  it('막대 이름: 서버의 날짜(YYYY-MM-DD)는 요일 · 마지막은 "오늘", 시("00"~"23")는 "0시", 이번 달은 "20일"', async () => {
+    server({
+      'GET /admin/stats/active': (req) => {
+        const range = req.query.get('range') ?? 'week';
+        if (range === 'today') return { status: 200, body: { ...activeStats('today'), points: [{ label: '00', value: 1 }, { label: '01', value: 2 }] } };
+        if (range === 'month') return { status: 200, body: { ...activeStats('month'), points: [{ label: '2026-11-01', value: 1 }, { label: '2026-11-20', value: 2 }] } };
+        return { status: 200, body: activeStats('week') };
+      },
+    });
+    renderApp(<StatsPage />);
+    const region = within(await screen.findByRole('region', { name: t.active.title }));
+    const chart = await region.findByRole('img', { name: t.active.chartLabel(t.active.ranges.week) });
+    expect([...chart.querySelectorAll('.bars__label')].map((l) => l.textContent)).toEqual(['토', '일', '월', '화', '수', '목', t.active.todayBar]);
+    await userEvent.click(region.getByRole('button', { name: t.active.ranges.today }));
+    const today = await region.findByRole('img', { name: t.active.chartLabel(t.active.ranges.today) });
+    expect([...today.querySelectorAll('.bars__label')].map((l) => l.textContent)).toEqual([t.active.hour(0), t.active.hour(1)]);
+    await userEvent.click(region.getByRole('button', { name: t.active.ranges.month }));
+    const month = await region.findByRole('img', { name: t.active.chartLabel(t.active.ranges.month) });
+    expect([...month.querySelectorAll('.bars__label')].map((l) => l.textContent)).toEqual([t.active.day(1), t.active.day(20)]);
+  });
+
   it('접속 기록을 못 받으면(서버 전) 카드는 두고 "—" 와 안내', async () => {
     server({ 'GET /admin/stats/active': { status: 404, body: { error: 'NOT_FOUND' } } });
     renderApp(<StatsPage />);

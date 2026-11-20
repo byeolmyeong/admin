@@ -127,6 +127,11 @@ export const strings = {
       people: (n: string) => `${n}명`,
       note: '일별 고유 접속자 기준 · 오늘은 시간대별, 이번 달은 일별',
       chartLabel: (range: string) => `${range} 접속자 막대그래프`,
+      /** 막대 아래 이름: 오늘은 시("00"~"23" → 0시), 이번 주는 요일(마지막은 오늘), 이번 달은 날(YYYY-MM-DD → 20일) */
+      hour: (h: number) => `${h}시`,
+      day: (d: number) => `${d}일`,
+      weekdays: ['일', '월', '화', '수', '목', '금', '토'],
+      todayBar: '오늘',
       failed: '접속 기록을 불러오지 못했습니다.',
     },
     waitingTitle: '답변 대기 문의',

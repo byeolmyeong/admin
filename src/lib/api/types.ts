@@ -63,13 +63,11 @@ export interface Stats extends StatsV2Fields {
   accounts: { total: number; last7Days: number; last30Days: number };
   profiles: { total: number };
   readings: { total: number };
-  /** me · timing · generating 은 v2(결정 043 의 3 — 자세한 풀이 둘) */
-  reports: { total: number; byStatus: Counts; me?: number; timing?: number; generating?: number };
+  reports: { total: number; byStatus: Counts };
   synastries: { total: number };
   synastryReports: { total: number; byStatus: Counts };
   directions: { total: number; byTopic: Counts };
-  /** waiting · oldestWaitingAt 은 v2 */
-  inquiries: { total: number; byStatus: Counts; waiting?: number; oldestWaitingAt?: string | null };
+  inquiries: { total: number; byStatus: Counts };
 }
 
 export interface Faq {
@@ -256,9 +254,16 @@ export interface UserDetail extends UserRow {
 export interface StatsV2Fields {
   users?: { total: number; joinedToday: number; joined7d: number };
   nicknames?: { total: number };
-  todaySky?: { today: number; onDemand: number; prebuilt: number };
-  failuresToday?: { nickname: number; report: number };
-  pushToday?: { sent: number; failed: number };
+  /** 자세한 풀이 둘(결정 043 은 reports 라 불렀지만 옛 칸과 겹쳐 서버가 detailReports 로 — 서버 S⑪) */
+  detailReports?: { me: number; timing: number; generating: number };
+  /** 오늘의 하늘 — 셀 표가 생기기 전(서버 S④)에는 null */
+  todaySky?: { today: number; onDemand: number; prebuilt: number } | null;
+  /** 별명 생성 실패는 저장되지 않아 셀 수 없다 — 늘 null */
+  failuresToday?: { nickname: number | null; report: number };
+  /** 오늘의 푸시 — 서버 S⑩ 전에는 null */
+  pushToday?: { sent: number; failed: number } | null;
+  /** 답을 기다리는 문의(결정 043 은 inquiries 라 불렀지만 옛 칸과 겹쳐 inquiryQueue — 서버 S⑪) */
+  inquiryQueue?: { waiting: number; oldestWaitingAt: string | null };
   consents?: { pushRate: number; marketingRate: number; adReachable: number };
 }
 
