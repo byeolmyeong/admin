@@ -1,7 +1,8 @@
 import { useCallback, useId, useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import { LoadError, Loading } from '../../components/Feedback';
 import { EmptyState } from '../../components/EmptyState';
+import { MoreLink } from '../../components/MoreLink';
 import { PageHeader } from '../../components/PageHeader';
 import { Pill } from '../../components/Pill';
 import { useToast } from '../../components/Toast';
@@ -52,27 +53,33 @@ function Owner({ inquiry }: { inquiry: Inquiry }) {
   const owner = inquiry.owner ?? null;
   const name = owner?.nickname ?? inquiry.ownerRef;
   const device = owner && [platformLabel(owner.platform), owner.appVersion].filter(Boolean).join(' ');
-  const meta = owner ? [providerLabel(owner.provider), device || null, owner.joinedAt ? t.joined(formatKst(owner.joinedAt)) : null].filter((x): x is string => Boolean(x)) : [];
+  const via = owner ? [providerLabel(owner.provider), device || null].filter((x): x is string => Boolean(x)) : [];
+  const joined = owner?.joinedAt ? t.joined(formatKst(owner.joinedAt)) : null;
+  // 시안 v184: 데스크톱은 "카카오 · iOS 1.0.2 · 가입 …" 한 줄, 폰은 닉네임 줄 아래로 두 줄(수단 · 기기 / 가입).
   return (
     <div className="inquiry__owner">
       <span className="avatar" aria-hidden="true">
         {[...name][0]}
       </span>
-      <span className="inquiry__owner-text">
-        <span className={owner?.nickname ? 'inquiry__owner-name' : 'inquiry__owner-name mono'}>{name}</span>
-        {meta.length > 0 && <span className="muted">{t.ownerMeta(meta)}</span>}
-      </span>
-      {owner ? (
-        <Link className="link-more" to={`/users/${encodeURIComponent(owner.userId)}`}>
-          {t.userDetail}
-          <span aria-hidden="true"> ›</span>
-        </Link>
-      ) : (
-        <Link className="link-more" to={`/audit-logs?actorType=USER&actorRef=${encodeURIComponent(inquiry.ownerRef)}`}>
-          {t.ownerActions}
-          <span aria-hidden="true"> ›</span>
-        </Link>
+      <span className={owner?.nickname ? 'inquiry__owner-name' : 'inquiry__owner-name mono'}>{name}</span>
+      {(via.length > 0 || joined) && (
+        <span className="inquiry__owner-meta muted">
+          {via.length > 0 && <span>{t.ownerMeta(via)}</span>}
+          {via.length > 0 && joined && (
+            <span className="inquiry__owner-sep" aria-hidden="true">
+              {' · '}
+            </span>
+          )}
+          {joined && <span>{joined}</span>}
+        </span>
       )}
+      <span className="inquiry__owner-link">
+        {owner ? (
+          <MoreLink to={`/users/${encodeURIComponent(owner.userId)}`}>{t.userDetail}</MoreLink>
+        ) : (
+          <MoreLink to={`/audit-logs?actorType=USER&actorRef=${encodeURIComponent(inquiry.ownerRef)}`}>{t.ownerActions}</MoreLink>
+        )}
+      </span>
     </div>
   );
 }

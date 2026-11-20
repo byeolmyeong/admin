@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { Icon } from '../../components/icons';
 import { strings } from '../../content/strings';
 import type { Maintenance } from '../../lib/api/types';
 import { formatKst } from '../../lib/text';
@@ -63,11 +64,14 @@ export function MaintenanceBanner() {
     <div className="banner" role="status">
       <span className="banner__dot" aria-hidden="true" />
       <strong className="banner__title">{t.title}</strong>
+      {/* 데스크톱은 한 줄, 폰은 세 줄(이름표 · 링크 / 설명 / 시작 시각 · 켠 관리자) — 시안 v184 */}
       <span className="banner__body">
-        {t.body(formatKst(maintenance.startedAt ?? maintenance.updatedAt), (maintenance.startedBy ?? maintenance.updatedBy)?.name ?? null)}
+        <span>{t.body}</span>{' '}
+        <span className="banner__since">{t.since(formatKst(maintenance.startedAt ?? maintenance.updatedAt), (maintenance.startedBy ?? maintenance.updatedBy)?.name ?? null)}</span>
       </span>
       <Link className="banner__link" to="/app-config">
         {t.link}
+        <Icon name="right" size={16} />
       </Link>
     </div>
   );

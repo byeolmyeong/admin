@@ -277,8 +277,49 @@ button:disabled {
 }
 
 .banner__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
   font-weight: 600;
-  text-decoration: underline;
+  white-space: nowrap;
+}
+
+/* 폰 점검 띠(D24 v184): 1줄 ● 이름표 · 링크(오른쪽), 2줄 설명, 3줄 시작 시각 · 켠 관리자(흐리게) */
+@media (max-width: 639px) {
+  .banner {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'dot title link'
+      'body body body';
+    column-gap: var(--space-xs);
+    row-gap: 4px;
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .banner__dot {
+    grid-area: dot;
+  }
+
+  .banner__title {
+    grid-area: title;
+  }
+
+  .banner__link {
+    grid-area: link;
+  }
+
+  .banner__body {
+    display: flex;
+    grid-area: body;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .banner__since {
+    opacity: 0.8;
+  }
 }
 
 /* 640 아래의 위 막대 */

@@ -141,19 +141,6 @@
   font: var(--type-table);
 }
 
-.inquiry__owner-text {
-  display: flex;
-  flex: 1;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px 10px;
-  min-width: 0;
-}
-
-.inquiry__owner-text .field__help {
-  flex-basis: 100%;
-}
-
 .inquiry__label {
   font-weight: 600;
 }
@@ -826,5 +813,93 @@
     padding: var(--space-xs) 0;
     border: 0;
     box-shadow: none;
+  }
+}
+
+/* ── 시안 v184 ─────────────────────────────────────── */
+/* 화살표 링크: 13px 굵게 + 16px 오른쪽 화살표 */
+.link-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  font: var(--type-table);
+  font-weight: 600;
+}
+
+.link-more .icon {
+  flex-shrink: 0;
+}
+
+/* 문의 작성자 줄(D3): 데스크톱은 한 줄(메타 한 줄 · 링크 세로 가운데) */
+.inquiry__owner {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  grid-template-areas: 'avatar name meta link';
+  flex-wrap: nowrap;
+  column-gap: 10px;
+}
+
+.inquiry__owner .avatar {
+  grid-area: avatar;
+}
+
+.inquiry__owner-name {
+  grid-area: name;
+}
+
+.inquiry__owner-meta {
+  grid-area: meta;
+  min-width: 0;
+}
+
+.inquiry__owner-link {
+  grid-area: link;
+}
+
+/* 관리자 폰 카드(D9): 아이디 아래 마지막 로그인 */
+.admin-card__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-card__last {
+  padding-left: 40px;
+  font: var(--type-small);
+  color: var(--color-hint);
+}
+
+/* 앱 설정(D6): 최신 · 최소 버전 한 줄에 둘 */
+.f2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+  align-items: start;
+}
+
+@media (max-width: 639px) {
+  /* 작성자 줄 폰: 아바타 위쪽 · 1줄 닉네임 / 링크, 아래로 수단 · 기기 한 줄, 가입 한 줄 */
+  .inquiry__owner {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'avatar name link'
+      'avatar meta meta';
+    align-items: start;
+    row-gap: 2px;
+  }
+
+  .inquiry__owner-meta {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .inquiry__owner-sep {
+    display: none;
+  }
+
+  .f2 {
+    grid-template-columns: 1fr;
   }
 }

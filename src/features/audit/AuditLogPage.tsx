@@ -27,19 +27,22 @@ import { actionLabel, actorTypeLabel, detailChips, outcomeLabel, targetLabel } f
 
 const t = strings.audit;
 /** 대상 id 의 앞 몇 글자만 보인다 */
-const SHORT_ID = 8;
 const ACTIONS: readonly string[] = [...AUDIT_ADMIN_ACTIONS, ...AUDIT_USER_ACTIONS];
 const ACTION_OPTIONS = ACTIONS.map((code) => ({ value: code, label: actionLabel(code) }));
 const ACTOR_OPTIONS = [{ value: '', label: t.all }, ...AUDIT_ACTOR_TYPES.map((value) => ({ value, label: actorTypeLabel(value) }))];
 
 const oneOf = (value: string, allowed: readonly string[]): string => (allowed.includes(value) ? value : '');
 const dateOf = (value: string): string => (isValidDate(value) ? value : '');
+/** 사용자 행의 label 이 ref 와 같으면 닉네임을 받지 못한 것(지금 계약). 관리자는 아이디가 곧 이름이다. */
+const actorNamed = (item: AuditLog): boolean => item.actor !== null && !(item.actorType === 'USER' && item.actor.label === item.actor.ref);
+const actorText = (item: AuditLog): string => (item.actor === null ? '' : actorNamed(item) ? item.actor.label : t.userAccount);
 const actorTone = (type: string): PillTone => (type === 'ADMIN' ? 'pri' : type === 'USER' ? 'ok' : 'mute');
 
 /** 대상: 문의는 그 문의로, 관리자 · 자주 묻는 질문은 그 화면으로 잇는다. 대상은 그 뒤 지워졌을 수 있다. */
 function Target({ type, id }: { type: string | null; id: string | null }) {
   if (type === null) return null;
-  const text = id === null ? targetLabel(type) : t.target(targetLabel(type), [...id].slice(0, SHORT_ID).join(''));
+  // 대상은 종류 글만(날 id 는 보이지 않는다 — 시안 v184). 문의는 눌러서 그 문의로 간다.
+  const text = targetLabel(type);
   const to = type === 'INQUIRY' && id !== null ? `/inquiries/${encodeURIComponent(id)}` : type === 'ADMIN' ? '/admins' : type === 'FAQ' ? '/faqs' : null;
   return to === null ? <span>{text}</span> : <Link to={to}>{text}</Link>;
 }
@@ -97,9 +100,14 @@ export function AuditLogPage() {
     item.actor === null ? (
       <span className="muted">{strings.inquiries.none}</span>
     ) : (
-      // 보여 줄 때는 label, 거를 때는 ref(계약)
-      <button type="button" className="btn-text mono" aria-label={t.filterByActor(item.actor.label)} onClick={() => item.actor && onActor(item.actor.ref)}>
-        {item.actor.label}
+      // 보여 줄 때는 label, 거를 때는 ref(계약). 사용자인데 label 이 ref(ownerRef) 그대로면 닉네임이 없는 것 — 날 id 대신 종류 글.
+      <button
+        type="button"
+        className={actorNamed(item) ? 'btn-text' : 'btn-text muted'}
+        aria-label={t.filterByActor(actorText(item))}
+        onClick={() => item.actor && onActor(item.actor.ref)}
+      >
+        {actorText(item)}
       </button>
     );
 

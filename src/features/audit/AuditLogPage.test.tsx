@@ -88,7 +88,9 @@ describe('감사 로그(D10)', () => {
     expect(first.getByText(t.actorTypes.ADMIN)).toBeInTheDocument();
     expect(first.getByRole('button', { name: t.filterByActor('root-admin') })).toHaveTextContent('root-admin');
     expect(first.getByText(t.actions.INQUIRY_UPDATED)).toBeInTheDocument();
-    expect(first.getByRole('link', { name: t.target(t.targets.INQUIRY, '7c1d2e3f') })).toHaveAttribute('href', `/inquiries/${inquiryId}`);
+    // 대상은 종류 글만 — 날 id 는 보이지 않는다(시안 v184)
+    expect(first.getByRole('link', { name: t.targets.INQUIRY })).toHaveAttribute('href', `/inquiries/${inquiryId}`);
+    expect(first.queryByText(/7c1d2e3f/)).not.toBeInTheDocument();
     expect(first.getByText(chip('상태', strings.inquiryStatus.DONE), { exact: false })).toBeInTheDocument();
     expect(first.queryByText(t.outcomes.FAILURE)).not.toBeInTheDocument();
 
@@ -120,11 +122,23 @@ describe('감사 로그(D10)', () => {
     });
     renderApp(tree, { route: '/audit-logs' });
     const all = await rows();
-    expect(within(all[1] as HTMLElement).getByRole('link', { name: t.target(t.targets.ADMIN, '22222222') })).toHaveAttribute('href', '/admins');
-    expect(within(all[2] as HTMLElement).getByRole('link', { name: t.target(t.targets.FAQ, 'ffffffff') })).toHaveAttribute('href', '/faqs');
+    expect(within(all[1] as HTMLElement).getByRole('link', { name: t.targets.ADMIN })).toHaveAttribute('href', '/admins');
+    expect(within(all[2] as HTMLElement).getByRole('link', { name: t.targets.FAQ })).toHaveAttribute('href', '/faqs');
     const third = within(all[3] as HTMLElement);
-    expect(third.getByText(t.target(t.targets.APP_CONFIG, 'maintena'))).toBeInTheDocument();
+    expect(third.getByText(t.targets.APP_CONFIG)).toBeInTheDocument();
     expect(third.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('사용자 행의 label 이 ref(ownerRef) 그대로면 날 id 대신 "사용자 계정" — 눌러 거르기는 ref 로', async () => {
+    const { calls } = mockFetch({
+      'GET /admin/me': me,
+      [LIST]: page([auditLog({ actorType: 'USER', actor: { ref: '9e8d7c6b5a40', label: '9e8d7c6b5a40' }, action: 'INQUIRY_SUBMITTED' })]),
+    });
+    renderApp(tree, { route: '/audit-logs' });
+    const row = within((await rows())[1] as HTMLElement);
+    expect(row.queryByText('9e8d7c6b5a40')).not.toBeInTheDocument();
+    await userEvent.click(row.getByRole('button', { name: t.filterByActor(t.userAccount) }));
+    await vi.waitFor(() => expect(lastQuery(calls)).toContain('actorRef=9e8d7c6b5a40'));
   });
 
   it('모르는 활동 · 대상 · 결과 · detail 키는 받은 그대로 보여 준다', async () => {
@@ -135,7 +149,7 @@ describe('감사 로그(D10)', () => {
     renderApp(tree, { route: '/audit-logs' });
     const row = within((await rows())[1] as HTMLElement);
     expect(row.getByText('COUPON_ISSUED')).toBeInTheDocument();
-    expect(row.getByText(t.target('COUPON', 'c-1'), { exact: false })).toBeInTheDocument();
+    expect(row.getByText('COUPON')).toBeInTheDocument();
     expect(row.getByText('PARTIAL')).toBeInTheDocument();
     expect(row.getByText(chip('tier', 'GOLD'), { exact: false })).toBeInTheDocument();
   });

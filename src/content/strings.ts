@@ -261,6 +261,7 @@ export const strings = {
     create: '관리자 추가',
     listLabel: '관리자 목록',
     columns: { loginId: '아이디', role: '역할', state: '상태', lastLogin: '마지막 로그인', action: '조치' },
+    lastLoginLine: (at: string) => `마지막 로그인 ${at}`,
     /** 역할 구분은 없다(결정 014) — 모든 관리자가 운영자다 */
     role: '운영자',
     active: '활성',
@@ -393,7 +394,8 @@ export const strings = {
     columns: { occurredAt: '일시', actorType: '주체', actor: '계정', action: '활동', detail: '내용' },
     filterByActor: (label: string) => `${label} 계정만 보기`,
     targets: { ADMIN: '관리자', INQUIRY: '문의', FAQ: '자주 묻는 질문', SYNASTRY: '궁합', APP_CONFIG: '앱 설정', USER: '사용자', PUSH: '푸시' },
-    target: (type: string, id: string) => `${type} ${id}`,
+    /** 사용자 계정에 닉네임이 없을 때(지금 계약은 label 이 ownerRef 그대로) 보이는 글 */
+    userAccount: '사용자 계정',
     outcomes: { SUCCESS: '성공', FAILURE: '실패' },
     detail: {
       chip: (key: string, value: string) => `${key} ${value}`,
@@ -663,8 +665,8 @@ export const strings = {
     menuClose: '메뉴 닫기',
     maintenance: {
       title: '점검 모드 사용 중',
-      body: (time: string, by: string | null) =>
-        by === null ? `앱 · 웹에 점검 화면이 표시되고 있습니다. ${time} 시작` : `앱 · 웹에 점검 화면이 표시되고 있습니다. ${time} 시작 · ${by}`,
+      body: '앱 · 웹에 점검 화면이 표시되고 있습니다.',
+      since: (time: string, by: string | null) => (by === null ? `${time} 시작` : `${time} 시작 · ${by}`),
       link: '앱 설정에서 해제',
     },
   },

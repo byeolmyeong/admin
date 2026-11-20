@@ -211,7 +211,8 @@ describe('점검 알림', () => {
   it('띠에는 켠 시각(한국 시각)과 켠 관리자를 적는다(D24)', async () => {
     server({ [CONFIG]: { status: 200, body: appConfig({ maintenance: maintenance({ active: true, updatedAt: '2026-11-19T17:00:12Z', updatedBy: { id: admin.id, name: 'kim' } }) }) } });
     renderApp(<AppRoutes />);
-    expect(await screen.findByText(t.maintenance.body('2026.11.20 02:00:12', 'kim'))).toBeInTheDocument();
+    expect(await screen.findByText(t.maintenance.body)).toBeInTheDocument();
+    expect(screen.getByText(t.maintenance.since('2026.11.20 02:00:12', 'kim'))).toBeInTheDocument();
   });
 
   it('점검이 켜져 있으면 어느 화면에서나 띠와 앱 설정으로 가는 링크를 보인다', async () => {

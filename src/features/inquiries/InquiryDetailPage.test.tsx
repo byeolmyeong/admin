@@ -49,7 +49,9 @@ describe('문의 상세(D3)', () => {
     mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: owned } });
     open();
     expect(await screen.findByText('새벽별')).toBeInTheDocument();
-    expect(screen.getByText('카카오 · iOS 1.0.2 · 가입 2026.11.08 14:20:05')).toBeInTheDocument();
+    // 데스크톱은 한 줄, 폰은 두 줄로 나뉜다(같은 글, 사이 " · " 는 폰에서 숨김)
+    expect(screen.getByText('카카오 · iOS 1.0.2')).toBeInTheDocument();
+    expect(screen.getByText('가입 2026.11.08 14:20:05')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: t.userDetail })).toHaveAttribute('href', '/users/u1');
   });
 

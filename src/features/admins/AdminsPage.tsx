@@ -238,7 +238,10 @@ export function AdminsPage() {
               rowKey={(item) => item.id}
               card={(item) => (
                 <span className="admin-card">
-                  {who(item)}
+                  <span className="admin-card__text">
+                    {who(item)}
+                    <span className="admin-card__last">{t.lastLoginLine(item.lastLoginAt ? formatKst(item.lastLoginAt) : t.none)}</span>
+                  </span>
                   <Pill tone={item.active ? 'ok' : 'mute'}>{item.active ? t.active : t.inactive}</Pill>
                   {actions(item)}
                 </span>

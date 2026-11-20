@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { EmptyState } from '../../components/EmptyState';
 import { LoadError, Loading } from '../../components/Feedback';
+import { MoreLink } from '../../components/MoreLink';
 import { PageHeader } from '../../components/PageHeader';
 import { Pill } from '../../components/Pill';
 import { useToast } from '../../components/Toast';
@@ -217,10 +218,7 @@ function Detail({ user, onReload }: { user: UserDetail; onReload: () => void }) 
           <section className="card side-card" aria-labelledby="uinq-title">
             <h2 className="sec-title" id="uinq-title">
               {t.inquiries}
-              <Link className="link-more" to={`/inquiries?q=${encodeURIComponent(user.nickname ?? '')}`}>
-                {t.all}
-                <span aria-hidden="true"> ›</span>
-              </Link>
+              <MoreLink to={`/inquiries?q=${encodeURIComponent(user.nickname ?? '')}`}>{t.all}</MoreLink>
             </h2>
             {user.inquiries.length === 0 ? (
               <p className="field__help">{t.noInquiries}</p>
@@ -239,10 +237,7 @@ function Detail({ user, onReload }: { user: UserDetail; onReload: () => void }) 
           <section className="card side-card" aria-labelledby="recent-title">
             <h2 className="sec-title" id="recent-title">
               {t.recent}
-              <Link className="link-more" to={`/audit-logs?q=${encodeURIComponent(user.nickname ?? '')}`}>
-                {t.auditLink}
-                <span aria-hidden="true"> ›</span>
-              </Link>
+              <MoreLink to={`/audit-logs?q=${encodeURIComponent(user.nickname ?? '')}`}>{t.auditLink}</MoreLink>
             </h2>
             {user.recent.length === 0 ? (
               <p className="field__help">{t.noRecent}</p>

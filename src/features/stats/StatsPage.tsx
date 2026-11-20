@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { LoadError, Loading } from '../../components/Feedback';
+import { MoreLink } from '../../components/MoreLink';
 import { Icon } from '../../components/icons';
 import type { IconName } from '../../components/icons';
 import { PageHeader } from '../../components/PageHeader';
@@ -173,10 +174,7 @@ function Waiting() {
     <section className="card waiting" aria-labelledby="waiting-title">
       <h2 className="sec-title waiting__head" id="waiting-title">
         {t.waitingTitle}
-        <Link className="link-more" to="/inquiries?status=NEW">
-          {t.waitingAll}
-          <span aria-hidden="true"> ›</span>
-        </Link>
+        <MoreLink to="/inquiries?status=NEW">{t.waitingAll}</MoreLink>
       </h2>
       {items.length === 0 ? (
         <p className="field__help waiting__empty">{t.waitingEmpty}</p>
