@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { IconName } from '../components/icons';
 import { strings } from '../content/strings';
+import { hiddenSections } from '../lib/config';
 import { AdminsPage } from '../features/admins/AdminsPage';
 import { AppConfigPage } from '../features/app-config/AppConfigPage';
 import { AuditLogPage } from '../features/audit/AuditLogPage';
@@ -64,5 +65,11 @@ export const sections: Section[] = [
   // 새 구역은 여기에 한 줄을 더한다. 메뉴와 라우트에 함께 나타난다.
 ];
 
-/** 메뉴와 라우트에 나타나는 구역 */
-export const visibleSections = (): Section[] => sections.filter((s) => !s.hidden);
+/** 메뉴와 라우트에 나타나는 구역. 코드의 hidden 과 환경 변수 VITE_HIDDEN_SECTIONS 둘 다 뺀다. */
+export const visibleSections = (): Section[] => {
+  const off = hiddenSections();
+  return sections.filter((s) => !s.hidden && !off.includes(s.to));
+};
+
+/** 그 주소의 구역이 보이는지(다른 화면이 그리로 가는 링크를 그릴지 정할 때) */
+export const isSectionShown = (to: string): boolean => visibleSections().some((s) => s.to === to);

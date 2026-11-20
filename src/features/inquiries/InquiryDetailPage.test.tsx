@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { strings } from '../../content/strings';
 import { admin, inquiry } from '../../test/fixtures';
 import { callsTo, mockFetch } from '../../test/mockFetch';
@@ -53,6 +53,17 @@ describe('문의 상세(D3)', () => {
     expect(screen.getByText('카카오 · iOS 1.0.2')).toBeInTheDocument();
     expect(screen.getByText('가입 2026.11.08 14:20:05')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: t.userDetail })).toHaveAttribute('href', '/users/u1');
+  });
+
+  it('사용자 구역을 숨긴 운영(VITE_HIDDEN_SECTIONS=users)에서는 작성자를 링크 없이 글로만', async () => {
+    vi.stubEnv('VITE_HIDDEN_SECTIONS', 'users');
+    const owned = inquiry({ owner: { userId: 'u1', nickname: '새벽별', provider: 'KAKAO', platform: 'ios', appVersion: '1.0.2', joinedAt: '2026-11-08T05:20:05Z' } });
+    mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: owned } });
+    open();
+    expect(await screen.findByText('새벽별')).toBeInTheDocument();
+    expect(screen.getByText('카카오 · iOS 1.0.2')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: t.userDetail })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: t.ownerActions })).not.toBeInTheDocument();
   });
 
   it('owner 가 아직 없으면(서버 S⑧ 전) 계정 코드와 "활동 기록 ›"(그 계정으로 거른 감사 로그)', async () => {

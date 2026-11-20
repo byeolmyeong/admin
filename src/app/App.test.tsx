@@ -55,6 +55,16 @@ describe('화면 틀', () => {
     for (const section of visibleSections()) expect(section.routes.length).toBeGreaterThan(0);
   });
 
+  it('VITE_HIDDEN_SECTIONS=users,push 면 사용자 · 푸시 발송이 메뉴와 라우트에서 빠지고, 그 주소는 현황으로 간다', async () => {
+    vi.stubEnv('VITE_HIDDEN_SECTIONS', 'users,push');
+    expect(visibleSections().map((s) => s.to)).toEqual(['/stats', '/inquiries', '/faqs', '/app-config', '/admins', '/audit-logs']);
+    server();
+    renderApp(<AppRoutes />, { route: '/users' });
+    expect(await heading(strings.stats.title)).toBeInTheDocument();
+    expect(nav().queryByText(t.nav.users)).not.toBeInTheDocument();
+    expect(nav().queryByText(t.nav.push)).not.toBeInTheDocument();
+  });
+
   it('문의 옆에 답변 대기 수(현황의 새 문의 수)를 보이고, 없으면 숫자를 감춘다', async () => {
     server({ 'GET /admin/stats': { status: 200, body: stats({ inquiries: { total: 9, byStatus: { NEW: 4, IN_PROGRESS: 2, DONE: 3 } } }) } });
     const view = renderApp(<AppRoutes />);
