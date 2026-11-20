@@ -5,10 +5,10 @@ import type { Stats } from '../../lib/api/types';
 import { useAuth } from '../auth/AuthContext';
 
 /**
- * 답변 대기 문의 수 — 현황(`GET /admin/stats`)의 `inquiries.waiting`(결정 043 의 3),
+ * 답변 대기 문의 수 — 현황(`GET /admin/stats`)의 `inquiryQueue.waiting`(결정 043 의 3 — 서버 이름),
  * 서버가 아직 주지 않으면 새 문의(NEW) 수.
  */
-export const waitingOf = (stats: Stats): number => stats.inquiries.waiting ?? stats.inquiries.byStatus.NEW ?? 0;
+export const waitingOf = (stats: Stats): number => stats.inquiryQueue?.waiting ?? stats.inquiries.byStatus.NEW ?? 0;
 
 interface WaitingValue {
   /** 받지 못했으면 null(숫자를 보이지 않는다) */
@@ -35,7 +35,7 @@ export function WaitingCountProvider({ children }: { children: ReactNode }) {
       (stats) => {
         if (stale) return;
         setCount(waitingOf(stats));
-        setOldest(stats.inquiries.oldestWaitingAt ?? null);
+        setOldest(stats.inquiryQueue?.oldestWaitingAt ?? null);
       },
       () => {
         // 받지 못하면 숫자만 감춘다. 화면 자체의 오류는 각 화면이 알린다.

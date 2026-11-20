@@ -38,7 +38,6 @@ const isCount = (v: unknown): v is number => isInt(v) && v >= 0;
 const isStrOrNull = (o: Obj, key: string): boolean => key in o && (o[key] === null || isStr(o[key]));
 /** v2 필드: 없어도 되고, 있으면 글자이거나 null */
 const optStr = (o: Obj, key: string): boolean => !(key in o) || o[key] === null || isStr(o[key]);
-const optCount = (o: Obj, key: string): boolean => !(key in o) || isCount(o[key]);
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
 export const arrayOf =
@@ -112,22 +111,20 @@ export const isStats: Guard<Stats> = (v): v is Stats =>
   hasTotal(v.readings) &&
   hasTotal(v.reports) &&
   isCounts(v.reports.byStatus) &&
-  optCount(v.reports, 'me') &&
-  optCount(v.reports, 'timing') &&
-  optCount(v.reports, 'generating') &&
   hasTotal(v.inquiries) &&
   isCounts(v.inquiries.byStatus) &&
-  optCount(v.inquiries, 'waiting') &&
-  optStr(v.inquiries, 'oldestWaitingAt') &&
   // 1.0.0 에서 쓰지 않는 옛 묶음(궁합 · 방향성)은 없어도 된다
   optGroup(v, 'synastries', hasTotal) &&
   optGroup(v, 'synastryReports', (g) => hasTotal(g) && isCounts(g.byStatus)) &&
   optGroup(v, 'directions', (g) => hasTotal(g) && isCounts(g.byTopic)) &&
   optGroup(v, 'users', (g) => countsOf(g, ['total', 'joinedToday', 'joined7d'])) &&
   optGroup(v, 'nicknames', hasTotal) &&
-  optGroup(v, 'todaySky', (g) => countsOf(g, ['today', 'onDemand', 'prebuilt'])) &&
-  optGroup(v, 'failuresToday', (g) => countsOf(g, ['nickname', 'report'])) &&
-  optGroup(v, 'pushToday', (g) => countsOf(g, ['sent', 'failed'])) &&
+  optGroup(v, 'detailReports', (g) => countsOf(g, ['me', 'timing', 'generating'])) &&
+  // 셀 표가 아직 없는 칸은 null(서버 S⑪ — 오늘의 하늘은 S④, 푸시는 S⑩ 뒤에 채운다)
+  optGroup(v, 'todaySky', (g) => g === null || countsOf(g, ['today', 'onDemand', 'prebuilt'])) &&
+  optGroup(v, 'failuresToday', (g) => isObj(g) && (g.nickname === null || isCount(g.nickname)) && isCount(g.report)) &&
+  optGroup(v, 'pushToday', (g) => g === null || countsOf(g, ['sent', 'failed'])) &&
+  optGroup(v, 'inquiryQueue', (g) => isObj(g) && isCount(g.waiting) && isStrOrNull(g, 'oldestWaitingAt')) &&
   optGroup(v, 'consents', (g) => ratesOf(g, ['pushRate', 'marketingRate']) && isObj(g) && isCount(g.adReachable));
 
 export const isActiveStats: Guard<ActiveStats> = (v): v is ActiveStats =>

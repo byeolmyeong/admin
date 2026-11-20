@@ -112,13 +112,13 @@ describe('문의 목록(D2)', () => {
     await vi.waitFor(() => expect(listCalls(calls).at(-1)?.query.toString()).toBe('q=%EC%95%8C%EB%A6%BC&page=0&size=20'));
   });
 
-  it('머리 오른쪽: 최장 대기 N일(현황의 oldestWaitingAt)', async () => {
+  it('머리 오른쪽: 최장 대기 N일(현황의 inquiryQueue.oldestWaitingAt)', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-11-20T03:00:00Z'));
     mockFetch({
       'GET /admin/me': me,
       'GET /admin/inquiries': page(),
-      'GET /admin/stats': { status: 200, body: { ...stats(), inquiries: { total: 1, byStatus: { NEW: 1, IN_PROGRESS: 0, DONE: 0 }, oldestWaitingAt: '2026-11-18T03:00:00Z' } } },
+      'GET /admin/stats': { status: 200, body: { ...stats(), inquiryQueue: { waiting: 1, oldestWaitingAt: '2026-11-18T03:00:00Z' } } },
     });
     renderApp(
       <WaitingCountProvider>
