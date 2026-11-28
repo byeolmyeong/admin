@@ -109,6 +109,26 @@ describe('사용자 상세(D5 · D12 · D13 · D26)', () => {
     expect(screen.getByRole('link', { name: strings.users.title })).toHaveAttribute('href', '/users');
   });
 
+  it('문의 "전체" · "감사 로그" 링크는 그 사람의 닉네임으로 찾고, 감사 로그는 사용자 행만(관리자 아이디가 섞이지 않게)', async () => {
+    server();
+    open();
+    const inquiries = within(await screen.findByRole('region', { name: new RegExp(`^${d.inquiries}`) }));
+    expect(inquiries.getByRole('link', { name: d.all })).toHaveAttribute('href', `/inquiries?q=${encodeURIComponent('새벽별')}`);
+    const recent = within(screen.getByRole('region', { name: new RegExp(`^${d.recent}`) }));
+    expect(recent.getByRole('link', { name: d.auditLink })).toHaveAttribute('href', `/audit-logs?actorType=USER&q=${encodeURIComponent('새벽별')}`);
+  });
+
+  it('닉네임이 없는 사용자는 그 사람으로 거를 수 없어 링크를 두지 않는다(빈 찾기 = 전체 목록이 열리던 것)', async () => {
+    server({ [`GET /admin/users/${USER.id}`]: { status: 200, body: userDetail({ nickname: null }) } });
+    open();
+    const inquiries = within(await screen.findByRole('region', { name: new RegExp(`^${d.inquiries}`) }));
+    expect(inquiries.queryByRole('link', { name: d.all })).not.toBeInTheDocument();
+    // 이 카드의 문의 줄은 그대로 보인다
+    expect(inquiries.getByRole('link', { name: '아침에 오늘의 하늘 알림이 오지 않아요.' })).toBeInTheDocument();
+    const recent = within(screen.getByRole('region', { name: new RegExp(`^${d.recent}`) }));
+    expect(recent.queryByRole('link', { name: d.auditLink })).not.toBeInTheDocument();
+  });
+
   it('서버 푸시 묶음 전(S⑪ 계약): 오늘의 하늘 · 기기 칸이 없어도 그리고 "—"', async () => {
     const withoutPush: Record<string, unknown> = { ...userDetail() };
     delete withoutPush.todaySky;
@@ -174,5 +194,52 @@ describe('사용자 상세(D5 · D12 · D13 · D26)', () => {
     expect(await screen.findByText(d.deleteDialog.done)).toBeInTheDocument();
     expect(callsTo(calls, `DELETE /admin/users/${USER.id}`)[0]?.body).toEqual({ reason: '문의 #131 로 탈퇴 요청', confirmNickname: '새벽별' });
     expect(screen.getByTestId('where')).toHaveTextContent('/users');
+  });
+
+  it('닉네임이 없는 사용자는 닉네임 확인 칸 없이 사유만으로 켜지고, confirmNickname 은 빈 글로 보낸다', async () => {
+    const { calls } = server({
+      [`GET /admin/users/${USER.id}`]: { status: 200, body: userDetail({ nickname: null }) },
+      [`DELETE /admin/users/${USER.id}`]: { status: 204 },
+    });
+    const user = userEvent.setup();
+    open();
+    await user.click(await screen.findByRole('button', { name: d.delete }));
+    const dialog = within(screen.getByRole('alertdialog'));
+    expect(dialog.queryByLabelText(d.deleteDialog.nickname)).not.toBeInTheDocument();
+    const confirm = dialog.getByRole('button', { name: d.deleteDialog.confirm });
+    expect(confirm).toBeDisabled();
+    await user.type(dialog.getByLabelText(d.deleteDialog.reason), '문의로 탈퇴 요청');
+    expect(confirm).toBeEnabled();
+    await user.click(confirm);
+    expect(await screen.findByText(d.deleteDialog.done)).toBeInTheDocument();
+    expect(callsTo(calls, `DELETE /admin/users/${USER.id}`)[0]?.body).toEqual({ reason: '문의로 탈퇴 요청', confirmNickname: '' });
+  });
+
+  it('삭제가 실패하면 알리고 확인 창과 적던 사유 · 닉네임을 그대로 둔다', async () => {
+    server({ [`DELETE /admin/users/${USER.id}`]: { status: 400, body: { error: 'CONFIRM_MISMATCH' } } });
+    const user = userEvent.setup();
+    open();
+    await user.click(await screen.findByRole('button', { name: d.delete }));
+    const dialog = within(screen.getByRole('alertdialog', { name: d.deleteDialog.title('새벽별') }));
+    await user.type(dialog.getByLabelText(d.deleteDialog.reason), '문의 #131 로 탈퇴 요청');
+    await user.type(dialog.getByLabelText(d.deleteDialog.nickname), '새벽별');
+    await user.click(dialog.getByRole('button', { name: d.deleteDialog.confirm }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(d.errors.CONFIRM_MISMATCH);
+    const still = within(screen.getByRole('alertdialog', { name: d.deleteDialog.title('새벽별') }));
+    expect(still.getByLabelText(d.deleteDialog.reason)).toHaveValue('문의 #131 로 탈퇴 요청');
+    expect(still.getByLabelText(d.deleteDialog.nickname)).toHaveValue('새벽별');
+    expect(screen.getByTestId('where')).toHaveTextContent(`/users/${USER.id}`);
+  });
+
+  it('정지가 실패해도 확인 창과 사유를 그대로 둔다', async () => {
+    server({ [`POST /admin/users/${USER.id}/suspend`]: { status: 500, body: { error: 'X' } } });
+    const user = userEvent.setup();
+    open();
+    await user.click(await screen.findByRole('button', { name: d.suspend }));
+    const dialog = within(screen.getByRole('alertdialog', { name: d.suspendDialog.title('새벽별') }));
+    await user.type(dialog.getByLabelText(d.suspendDialog.reason), '문의 도배');
+    await user.click(dialog.getByRole('button', { name: d.suspendDialog.confirm }));
+    await screen.findByRole('alert');
+    expect(within(screen.getByRole('alertdialog')).getByLabelText(d.suspendDialog.reason)).toHaveValue('문의 도배');
   });
 });

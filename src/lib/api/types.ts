@@ -82,7 +82,7 @@ export interface Faq {
 
 export const AUDIT_ACTOR_TYPES = ['ADMIN', 'USER', 'SYSTEM'] as const;
 
-/** 계약 "감사 기록" 의 행동 표 그대로(관리자). 조건(`action`)에 넣을 수 있는 값이다. */
+/** 계약 "감사 기록" 의 행동 표 그대로(관리자, 서버 `AuditAction` 과 같다). 조건(`action`)에 넣을 수 있는 값이다. */
 export const AUDIT_ADMIN_ACTIONS = [
   'ADMIN_LOGIN',
   'ADMIN_LOGOUT',
@@ -94,6 +94,8 @@ export const AUDIT_ADMIN_ACTIONS = [
   'ADMIN_BOOTSTRAPPED',
   'INQUIRY_VIEWED',
   'INQUIRY_UPDATED',
+  // 결정 039 — 답을 저장할 때마다
+  'INQUIRY_ANSWERED',
   'FAQ_CREATED',
   'FAQ_UPDATED',
   'FAQ_PUBLISHED',
@@ -125,6 +127,8 @@ export const AUDIT_USER_ACTIONS = [
   'SHARE_DELETED',
   'INQUIRY_SUBMITTED',
   'ACCOUNT_DELETED',
+  // 결정 025 — 마케팅 수신 동의를 켜거나 끔
+  'MARKETING_CONSENT_CHANGED',
   'TERMS_AGREED',
   'PUSH_CONSENT_CHANGED',
 ] as const;
