@@ -11,11 +11,12 @@ export const actorTypeLabel = (actorType: string): string => pick(t.actorTypes, 
 export const targetLabel = (targetType: string): string => pick(t.targets, targetType);
 export const outcomeLabel = (outcome: string): string => pick(t.outcomes, outcome);
 
-/** detail 의 키마다 값의 문구. status · category 는 문의 화면과 같은 말을 쓴다. */
+/** detail 의 키마다 값의 문구. status · category 는 문의 화면, target(푸시의 이동 화면)은 푸시 화면과 같은 말을 쓴다. */
 const valueLabels: Readonly<Record<string, Labels>> = {
   ...t.detail.values,
   status: strings.inquiryStatus,
   category: strings.inquiries.categories,
+  target: strings.push.targets,
 };
 
 const valueText = (value: unknown): string => {

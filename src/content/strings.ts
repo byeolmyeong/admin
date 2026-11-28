@@ -366,6 +366,7 @@ export const strings = {
       ADMIN_BOOTSTRAPPED: '최초 관리자 생성(서버)',
       INQUIRY_VIEWED: '문의 열람',
       INQUIRY_UPDATED: '문의 처리',
+      INQUIRY_ANSWERED: '문의 답변',
       FAQ_CREATED: '자주 묻는 질문 추가',
       FAQ_UPDATED: '자주 묻는 질문 수정',
       FAQ_PUBLISHED: '자주 묻는 질문 공개',
@@ -392,12 +393,14 @@ export const strings = {
       SHARE_DELETED: '공유 삭제',
       INQUIRY_SUBMITTED: '문의 접수',
       ACCOUNT_DELETED: '계정 삭제',
+      MARKETING_CONSENT_CHANGED: '마케팅 수신 동의 변경',
       TERMS_AGREED: '약관 동의',
       PUSH_CONSENT_CHANGED: '푸시 수신 동의 변경',
     },
     columns: { occurredAt: '일시', actorType: '주체', actor: '계정', action: '활동', detail: '내용' },
     filterByActor: (label: string) => `${label} 계정만 보기`,
-    targets: { ADMIN: '관리자', INQUIRY: '문의', FAQ: '자주 묻는 질문', SYNASTRY: '궁합', APP_CONFIG: '앱 설정', USER: '사용자', PUSH: '푸시' },
+    // ACCOUNT 는 애플에서 계정이 지워졌을 때(SYSTEM 의 ACCOUNT_DELETED)
+    targets: { ADMIN: '관리자', INQUIRY: '문의', FAQ: '자주 묻는 질문', SYNASTRY: '궁합', APP_CONFIG: '앱 설정', USER: '사용자', PUSH_EVENT: '푸시', ACCOUNT: '계정' },
     /** 사용자 계정에 닉네임이 없을 때(지금 계약은 label 이 ownerRef 그대로) 보이는 글 */
     userAccount: '사용자 계정',
     outcomes: { SUCCESS: '성공', FAILURE: '실패' },
@@ -407,10 +410,13 @@ export const strings = {
       keys: {
         status: '상태',
         memoChanged: '메모',
+        draftChanged: '임시 저장',
+        first: '알림',
         published: '공개',
         count: '개수',
         platform: '플랫폼',
         minVersion: '최소 버전',
+        latestVersion: '최신 버전',
         blockNow: '즉시 차단',
         active: '점검',
         change: '저장',
@@ -424,10 +430,14 @@ export const strings = {
         reason: '사유',
         kindRetried: '종류',
         recipients: '대상',
+        target: '이동 화면',
       },
       /** 키마다 값의 뜻. 여기에 없는 값은 받은 그대로 보인다(status · category 는 문의의 문구를 쓴다). */
       values: {
         memoChanged: { true: '변경', false: '유지' },
+        draftChanged: { true: '변경' },
+        // 처음 답이면 앱 사용자에게 알림함 · 푸시로 알렸다(고친 답은 알리지 않는다)
+        first: { true: '보냄', false: '없음' },
         published: { true: '공개', false: '비공개' },
         platform: { ios: 'iOS', android: 'Android' },
         blockNow: { true: '켬', false: '끔' },

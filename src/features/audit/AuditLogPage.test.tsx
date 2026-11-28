@@ -214,6 +214,15 @@ describe('감사 로그(D10)', () => {
     expect(screen.getByRole('button', { name: strings.pager.page(3) })).toHaveAttribute('aria-current', 'page');
   });
 
+  it.each(['INQUIRY_ANSWERED', 'MARKETING_CONSENT_CHANGED'])('서버가 남기는 %s 로도 거르고(주소에서 버리지 않는다) 한국어로 보인다', async (action) => {
+    const { calls } = mockFetch({ 'GET /admin/me': me, [LIST]: page([auditLog({ action, targetType: 'PUSH_EVENT', targetId: 'p-1', detail: null })]) });
+    renderApp(tree, { route: `/audit-logs?action=${action}&from=2026-11-01&to=2026-11-12` });
+    const row = within((await rows())[1] as HTMLElement);
+    expect(lastQuery(calls)).toBe(`action=${action}&from=2026-11-01&to=2026-11-12&page=0&size=20`);
+    expect(row.queryByText(action)).not.toBeInTheDocument();
+    expect(row.queryByText('PUSH_EVENT')).not.toBeInTheDocument();
+  });
+
   it('주소의 틀린 값(소문자 · 모르는 활동 · 없는 날 · 음수 쪽)은 보내지 않는다', async () => {
     const { calls } = mockFetch({ 'GET /admin/me': me, [LIST]: page() });
     renderApp(tree, { route: '/audit-logs?actorType=admin&action=NOPE&from=2026-02-30&to=2026-11-1&actorRef=%20&page=-1' });
