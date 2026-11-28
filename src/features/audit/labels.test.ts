@@ -6,13 +6,22 @@ import { actionLabel, actorTypeLabel, detailChips, outcomeLabel, targetLabel } f
 const chip = strings.audit.detail.chip;
 
 describe('감사 로그의 문구', () => {
-  it('계약의 행동 코드는 서른여덟 개다(관리자 24 — 결정 043 의 8 포함 · 사용자 14)', () => {
-    expect(AUDIT_ADMIN_ACTIONS).toHaveLength(24);
+  it('계약의 행동 코드는 마흔 개다(서버 AuditAction 과 같다 — 관리자 25 · 사용자 15)', () => {
+    expect(AUDIT_ADMIN_ACTIONS).toHaveLength(25);
     expect(AUDIT_ADMIN_ACTIONS).toContain('PUSH_EVENT_SENT');
-    expect(AUDIT_USER_ACTIONS).toHaveLength(14);
+    expect(AUDIT_ADMIN_ACTIONS).toContain('INQUIRY_ANSWERED');
+    expect(AUDIT_USER_ACTIONS).toHaveLength(15);
     expect(AUDIT_USER_ACTIONS).toContain('TERMS_AGREED');
     expect(AUDIT_USER_ACTIONS).toContain('PUSH_CONSENT_CHANGED');
-    expect(new Set([...AUDIT_ADMIN_ACTIONS, ...AUDIT_USER_ACTIONS]).size).toBe(38);
+    expect(AUDIT_USER_ACTIONS).toContain('MARKETING_CONSENT_CHANGED');
+    expect(new Set([...AUDIT_ADMIN_ACTIONS, ...AUDIT_USER_ACTIONS]).size).toBe(40);
+  });
+
+  it('대상 종류는 서버가 남기는 것마다 한국어 이름이 있다', () => {
+    for (const type of ['ADMIN', 'INQUIRY', 'FAQ', 'SYNASTRY', 'APP_CONFIG', 'USER', 'PUSH_EVENT', 'ACCOUNT']) {
+      expect(targetLabel(type)).not.toBe(type);
+      expect(targetLabel(type)).toMatch(/[가-힣]/);
+    }
   });
 
   it.each([...AUDIT_ADMIN_ACTIONS, ...AUDIT_USER_ACTIONS])('%s 에 한국어 이름이 있다', (code) => {
@@ -56,6 +65,12 @@ describe('감사 로그의 문구', () => {
     expect(detailChips({ category: 'BUG' })).toEqual([chip('종류', '오류')]);
     expect(detailChips({ termsVersion: '2026-11-19', privacyVersion: '2026-11-19' })).toEqual([chip('약관', '2026-11-19'), chip('처리방침', '2026-11-19')]);
     expect(detailChips({ consent: 'true' })).toEqual([chip('동의', '켬')]);
+    // INQUIRY_ANSWERED · INQUIRY_UPDATED(임시 저장) · PUSH_EVENT_SENT · APP_CONFIG_UPDATED 의 키
+    expect(detailChips({ first: true })).toEqual([chip('알림', '보냄')]);
+    expect(detailChips({ first: false })).toEqual([chip('알림', '없음')]);
+    expect(detailChips({ memoChanged: false, draftChanged: true })).toEqual([chip('메모', '유지'), chip('임시 저장', '변경')]);
+    expect(detailChips({ target: 'TIMING_MONTH', recipients: 12 })).toEqual([chip('이동 화면', '시기 탭 · 이번 달'), chip('대상', '12')]);
+    expect(detailChips({ latestVersion: '1.1.0' })).toEqual([chip('최신 버전', '1.1.0')]);
   });
 
   it('detail: 모르는 키와 값은 받은 그대로 보인다', () => {

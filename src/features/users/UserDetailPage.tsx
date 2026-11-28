@@ -101,12 +101,13 @@ function Detail({ user, onReload }: { user: UserDetail; onReload: () => void }) 
     try {
       await work();
       toast.success(done);
+      setAsking(null);
       after();
     } catch (e) {
+      // 실패하면 확인 창과 적던 사유 · 닉네임을 그대로 둔다(결정 003 의 5).
       toast.error(errorMessage(e, t.errors));
     } finally {
       setBusy(false);
-      setAsking(null);
     }
   };
 
@@ -221,7 +222,8 @@ function Detail({ user, onReload }: { user: UserDetail; onReload: () => void }) 
           <section className="card side-card" aria-labelledby="uinq-title">
             <h2 className="sec-title" id="uinq-title">
               {t.inquiries}
-              <MoreLink to={`/inquiries?q=${encodeURIComponent(user.nickname ?? '')}`}>{t.all}</MoreLink>
+              {/* 서버 목록에 계정으로 거르는 조건이 없어 닉네임으로 찾는다. 닉네임이 없으면 빈 찾기(= 전체 목록)라 링크를 두지 않는다. */}
+              {user.nickname !== null && <MoreLink to={`/inquiries?q=${encodeURIComponent(user.nickname)}`}>{t.all}</MoreLink>}
             </h2>
             {user.inquiries.length === 0 ? (
               <p className="field__help">{t.noInquiries}</p>
@@ -240,7 +242,8 @@ function Detail({ user, onReload }: { user: UserDetail; onReload: () => void }) 
           <section className="card side-card" aria-labelledby="recent-title">
             <h2 className="sec-title" id="recent-title">
               {t.recent}
-              <MoreLink to={`/audit-logs?q=${encodeURIComponent(user.nickname ?? '')}`}>{t.auditLink}</MoreLink>
+              {/* 사용자 행만(q 는 관리자 행의 아이디에도 견준다). 그 사람에게 관리자가 한 일은 서버 조건이 없어 이 카드(recent)에만 있다. */}
+              {user.nickname !== null && <MoreLink to={`/audit-logs?actorType=USER&q=${encodeURIComponent(user.nickname)}`}>{t.auditLink}</MoreLink>}
             </h2>
             {user.recent.length === 0 ? (
               <p className="field__help">{t.noRecent}</p>
@@ -292,7 +295,8 @@ function Detail({ user, onReload }: { user: UserDetail; onReload: () => void }) 
           placeholder={t.deleteDialog.placeholder}
           confirmLabel={t.deleteDialog.confirm}
           danger
-          nickname={user.nickname ?? ''}
+          // 닉네임이 없는 옛 계정은 다시 적을 닉네임이 없다 — 칸을 두지 않고 confirmNickname 은 빈 글로 보낸다(서버 계약 변경과 함께).
+          nickname={user.nickname ?? undefined}
           busy={busy}
           onConfirm={(reason, confirmNickname) => run(() => api.deleteUser(user.id, reason, confirmNickname), t.deleteDialog.done, () => navigate('/users', { replace: true }))}
           onCancel={() => setAsking(null)}

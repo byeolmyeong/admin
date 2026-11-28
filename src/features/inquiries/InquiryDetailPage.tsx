@@ -1,4 +1,4 @@
-import { useCallback, useId, useState } from 'react';
+import { useCallback, useId, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { LoadError, Loading } from '../../components/Feedback';
 import { EmptyState } from '../../components/EmptyState';
@@ -103,28 +103,49 @@ function Detail({ inquiry, onChanged, onGone }: DetailProps) {
   const answerId = useId();
   const answerCountId = useId();
   const memoId = useId();
-  const [answer, setAnswer] = useState(inquiry.answer ?? inquiry.answerDraft ?? '');
+  // 서버는 답을 보낼 때 임시 저장을 비운다 — 임시 저장이 있으면 늘 보낸 답보다 새 글이라 그것부터 보인다.
+  const [answer, setAnswer] = useState(inquiry.answerDraft ?? inquiry.answer ?? '');
   const [memo, setMemo] = useState(inquiry.memo ?? '');
-  const [busy, setBusy] = useState(false);
+  // 답변(보내기 · 임시 저장)만 버튼을 막는다. 메모 자동 저장은 막지 않는다 — 메모 칸에서 바로 "보내기" 를 누르면
+  // 칸을 떠나며 메모 저장이 먼저 나가는데, 그때 버튼이 꺼지면 누른 것이 사라진다.
+  const [answerBusy, setAnswerBusy] = useState(false);
+  const answering = useRef(false);
+  // 고치는 요청은 한 번에 하나씩, 누른 차례대로 보낸다. 서버가 받은 차례와 답이 닿는 차례가 같아
+  // 늦게 닿은 답(예: 메모 저장)이 먼저 받은 답변 결과를 옛 값으로 덮지 않는다.
+  const queue = useRef<Promise<void>>(Promise.resolve());
   const answerCount = codePointLength(answer.trim());
   const memoCount = codePointLength(memo.trim());
 
-  const patch = async (change: InquiryPatch, done: string) => {
-    if (busy) return;
-    setBusy(true);
+  const send = async (change: InquiryPatch, done: string) => {
     try {
       const next = await api.patchInquiry(inquiry.id, change);
       onChanged(next);
-      if ('memo' in change) setMemo(next.memo ?? '');
+      // 보낸 메모를 서버가 다듬은 값으로 바꾼다 — 그사이 칸을 다시 고쳤으면 고친 글을 그대로 둔다.
+      if ('memo' in change) setMemo((current) => ((current.trim() === '' ? null : current.trim()) === change.memo ? (next.memo ?? '') : current));
       if ('answer' in change) refresh();
       toast.success(done);
     } catch (e) {
       // 실패해도 적던 내용은 그대로 둔다(결정 003 의 5).
       if (errorCode(e) === 'NOT_FOUND') onGone();
       else toast.error(errorMessage(e, t.errors));
-    } finally {
-      setBusy(false);
     }
+  };
+
+  const enqueue = (work: () => Promise<void>): Promise<void> => {
+    const run = queue.current.then(work);
+    queue.current = run;
+    return run;
+  };
+
+  /** 보내기 · 임시 저장. 앞서 나간 메모 저장이 있으면 그 뒤에 나간다. */
+  const patchAnswer = (change: InquiryPatch, done: string) => {
+    if (answering.current) return;
+    answering.current = true;
+    setAnswerBusy(true);
+    void enqueue(() => send(change, done)).finally(() => {
+      answering.current = false;
+      setAnswerBusy(false);
+    });
   };
 
   /** 내부 메모는 칸을 떠날 때 바뀌었으면 저장한다(D3 — 저장 버튼 없음). */
@@ -135,7 +156,7 @@ function Detail({ inquiry, onChanged, onGone }: DetailProps) {
       toast.error(t.errors.INVALID_MEMO);
       return;
     }
-    void patch({ memo: next }, t.memoSaved);
+    void enqueue(() => send({ memo: next }, t.memoSaved));
   };
 
   const answerOk = answerCount >= 1 && answerCount <= ANSWER_MAX;
@@ -178,10 +199,10 @@ function Detail({ inquiry, onChanged, onGone }: DetailProps) {
           <p className="field__help">{t.answerHelp}</p>
           {answered && <p className="field__help">{t.answered((inquiry.answeredBy ?? inquiry.handledBy)?.name ?? '', formatKst(answered))}</p>}
           <div className="answer__actions">
-            <button type="button" className="btn btn--secondary" disabled={busy || answerCount > ANSWER_MAX} onClick={() => patch({ answerDraft: answer.trim() === '' ? null : answer.trim() }, t.drafted)}>
+            <button type="button" className="btn btn--secondary" disabled={answerBusy || answerCount > ANSWER_MAX} onClick={() => patchAnswer({ answerDraft: answer.trim() === '' ? null : answer.trim() }, t.drafted)}>
               {t.draft}
             </button>
-            <button type="button" className="btn btn--primary" disabled={busy || !answerOk} onClick={() => patch({ answer: answer.trim() }, t.sent)}>
+            <button type="button" className="btn btn--primary" disabled={answerBusy || !answerOk} onClick={() => patchAnswer({ answer: answer.trim() }, t.sent)}>
               {t.send}
             </button>
           </div>

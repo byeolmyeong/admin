@@ -1,8 +1,9 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { strings } from '../../content/strings';
+import type { Inquiry } from '../../lib/api/types';
 import { admin, inquiry } from '../../test/fixtures';
 import { callsTo, mockFetch } from '../../test/mockFetch';
 import { renderApp } from '../../test/render';
@@ -117,6 +118,24 @@ describe('문의 상세(D3)', () => {
     expect(callsTo(calls, PATCH)[0]?.body).toEqual({ answerDraft: '초안' });
   });
 
+  it('답한 문의를 고쳐 임시 저장했으면 다시 열 때 임시 저장을 보이고, 보내기는 그 글을 보낸다', async () => {
+    // 서버는 답을 보낼 때 임시 저장을 비운다 — 임시 저장이 있으면 늘 보낸 답보다 새 글이다.
+    const answered = inquiry({ status: 'ANSWERED', answer: '옛 답', answerDraft: '고친 답', answeredAt: '2026-11-12T07:00:00Z', answeredBy: { id: admin.id, name: 'kim' } });
+    const { calls } = mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: answered }, [PATCH]: { status: 200, body: { ...answered, answer: '고친 답', answerDraft: null } } });
+    const user = userEvent.setup();
+    open();
+    expect(await screen.findByLabelText(t.answer)).toHaveValue('고친 답');
+    await user.click(screen.getByRole('button', { name: t.send }));
+    await screen.findByRole('status');
+    expect(callsTo(calls, PATCH)[0]?.body).toEqual({ answer: '고친 답' });
+  });
+
+  it('임시 저장이 없으면 보낸 답을 보인다', async () => {
+    mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: inquiry({ status: 'ANSWERED', answer: '보낸 답', answerDraft: null }) } });
+    open();
+    expect(await screen.findByLabelText(t.answer)).toHaveValue('보낸 답');
+  });
+
   it('답변 글자 수는 코드 포인트로 세고 2000자를 넘으면 보낼 수 없다', async () => {
     mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one } });
     open();
@@ -165,6 +184,63 @@ describe('문의 상세(D3)', () => {
     await user.click(screen.getByLabelText(t.memo));
     await user.tab();
     expect(callsTo(calls, PATCH)).toHaveLength(1);
+  });
+
+  /** 서버처럼 받은 차례대로 바꾸고, 그때의 문의를 돌려준다(늦게 닿을 수 있다). */
+  const serverInquiry = (hold?: { memo?: Promise<void> }) => {
+    let current: Inquiry = one;
+    return (req: { body: unknown }) => {
+      const change = req.body as { memo?: string | null; answer?: string };
+      if ('memo' in change) current = { ...current, memo: change.memo ?? null };
+      if (change.answer !== undefined)
+        current = { ...current, status: 'ANSWERED', answer: change.answer, answerDraft: null, answeredAt: '2026-11-12T07:00:00Z', answeredBy: { id: admin.id, name: 'kim' } };
+      const snapshot = current;
+      const wait = 'memo' in change && hold?.memo ? hold.memo : Promise.resolve();
+      return wait.then(() => ({ status: 200, body: snapshot }));
+    };
+  };
+
+  it('메모를 고친 채 바로 "보내기" 를 눌러도 메모 저장이 버튼을 막지 않고 답변이 전송된다', async () => {
+    const { calls } = mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one }, [PATCH]: serverInquiry() });
+    const user = userEvent.setup();
+    open();
+    await user.type(await screen.findByLabelText(t.answer), '확인해 주세요.');
+    await user.type(screen.getByLabelText(t.memo), '환불 문의');
+    // 메모 칸에서 바로 보내기를 누른다: 칸을 떠나며 메모 저장이 먼저 나간다
+    await user.click(screen.getByRole('button', { name: t.send }));
+    expect(await screen.findByText(t.answered('kim', '2026.11.12 16:00:00'))).toBeInTheDocument();
+    expect(callsTo(calls, PATCH).map((c) => c.body)).toEqual([{ memo: '환불 문의' }, { answer: '확인해 주세요.' }]);
+    expect(screen.getByLabelText(t.memo)).toHaveValue('환불 문의');
+  });
+
+  it('메모를 고친 채 바로 "임시 저장" 을 눌러도 임시 저장이 나간다', async () => {
+    const { calls } = mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one }, [PATCH]: serverInquiry() });
+    const user = userEvent.setup();
+    open();
+    await user.type(await screen.findByLabelText(t.answer), '초안');
+    await user.type(screen.getByLabelText(t.memo), '메모');
+    await user.click(screen.getByRole('button', { name: t.draft }));
+    await vi.waitFor(() => expect(callsTo(calls, PATCH).map((c) => c.body)).toEqual([{ memo: '메모' }, { answerDraft: '초안' }]));
+  });
+
+  it('메모 저장의 답이 늦게 와도 먼저 받은 답변 전송 결과를 되돌리지 않는다', async () => {
+    let release: () => void = () => undefined;
+    const memoHeld = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const { calls } = mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one }, [PATCH]: serverInquiry({ memo: memoHeld }) });
+    const user = userEvent.setup();
+    open();
+    await user.type(await screen.findByLabelText(t.answer), '확인해 주세요.');
+    await user.type(screen.getByLabelText(t.memo), '환불 문의');
+    await user.click(screen.getByRole('button', { name: t.send }));
+    release();
+    expect(await screen.findByText(t.answered('kim', '2026.11.12 16:00:00'))).toBeInTheDocument();
+    await vi.waitFor(() => expect(callsTo(calls, PATCH)).toHaveLength(2));
+    // 모든 답이 닿은 뒤에도 답변 완료 그대로(늦은 메모 답의 "답변 대기" 로 덮이지 않는다)
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+    expect(screen.getByText(t.answered('kim', '2026.11.12 16:00:00'))).toBeInTheDocument();
+    expect(screen.queryByText(strings.inquiryStatus.NEW)).not.toBeInTheDocument();
   });
 
   it('메모를 비우고 떠나면 null 로 지운다', async () => {
