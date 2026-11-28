@@ -109,6 +109,26 @@ describe('사용자 상세(D5 · D12 · D13 · D26)', () => {
     expect(screen.getByRole('link', { name: strings.users.title })).toHaveAttribute('href', '/users');
   });
 
+  it('문의 "전체" · "감사 로그" 링크는 그 사람의 닉네임으로 찾고, 감사 로그는 사용자 행만(관리자 아이디가 섞이지 않게)', async () => {
+    server();
+    open();
+    const inquiries = within(await screen.findByRole('region', { name: new RegExp(`^${d.inquiries}`) }));
+    expect(inquiries.getByRole('link', { name: d.all })).toHaveAttribute('href', `/inquiries?q=${encodeURIComponent('새벽별')}`);
+    const recent = within(screen.getByRole('region', { name: new RegExp(`^${d.recent}`) }));
+    expect(recent.getByRole('link', { name: d.auditLink })).toHaveAttribute('href', `/audit-logs?actorType=USER&q=${encodeURIComponent('새벽별')}`);
+  });
+
+  it('닉네임이 없는 사용자는 그 사람으로 거를 수 없어 링크를 두지 않는다(빈 찾기 = 전체 목록이 열리던 것)', async () => {
+    server({ [`GET /admin/users/${USER.id}`]: { status: 200, body: userDetail({ nickname: null }) } });
+    open();
+    const inquiries = within(await screen.findByRole('region', { name: new RegExp(`^${d.inquiries}`) }));
+    expect(inquiries.queryByRole('link', { name: d.all })).not.toBeInTheDocument();
+    // 이 카드의 문의 줄은 그대로 보인다
+    expect(inquiries.getByRole('link', { name: '아침에 오늘의 하늘 알림이 오지 않아요.' })).toBeInTheDocument();
+    const recent = within(screen.getByRole('region', { name: new RegExp(`^${d.recent}`) }));
+    expect(recent.queryByRole('link', { name: d.auditLink })).not.toBeInTheDocument();
+  });
+
   it('서버 푸시 묶음 전(S⑪ 계약): 오늘의 하늘 · 기기 칸이 없어도 그리고 "—"', async () => {
     const withoutPush: Record<string, unknown> = { ...userDetail() };
     delete withoutPush.todaySky;
