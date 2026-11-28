@@ -101,12 +101,13 @@ function Detail({ user, onReload }: { user: UserDetail; onReload: () => void }) 
     try {
       await work();
       toast.success(done);
+      setAsking(null);
       after();
     } catch (e) {
+      // 실패하면 확인 창과 적던 사유 · 닉네임을 그대로 둔다(결정 003 의 5).
       toast.error(errorMessage(e, t.errors));
     } finally {
       setBusy(false);
-      setAsking(null);
     }
   };
 

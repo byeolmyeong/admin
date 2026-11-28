@@ -214,4 +214,32 @@ describe('사용자 상세(D5 · D12 · D13 · D26)', () => {
     expect(await screen.findByText(d.deleteDialog.done)).toBeInTheDocument();
     expect(callsTo(calls, `DELETE /admin/users/${USER.id}`)[0]?.body).toEqual({ reason: '문의로 탈퇴 요청', confirmNickname: '' });
   });
+
+  it('삭제가 실패하면 알리고 확인 창과 적던 사유 · 닉네임을 그대로 둔다', async () => {
+    server({ [`DELETE /admin/users/${USER.id}`]: { status: 400, body: { error: 'CONFIRM_MISMATCH' } } });
+    const user = userEvent.setup();
+    open();
+    await user.click(await screen.findByRole('button', { name: d.delete }));
+    const dialog = within(screen.getByRole('alertdialog', { name: d.deleteDialog.title('새벽별') }));
+    await user.type(dialog.getByLabelText(d.deleteDialog.reason), '문의 #131 로 탈퇴 요청');
+    await user.type(dialog.getByLabelText(d.deleteDialog.nickname), '새벽별');
+    await user.click(dialog.getByRole('button', { name: d.deleteDialog.confirm }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(d.errors.CONFIRM_MISMATCH);
+    const still = within(screen.getByRole('alertdialog', { name: d.deleteDialog.title('새벽별') }));
+    expect(still.getByLabelText(d.deleteDialog.reason)).toHaveValue('문의 #131 로 탈퇴 요청');
+    expect(still.getByLabelText(d.deleteDialog.nickname)).toHaveValue('새벽별');
+    expect(screen.getByTestId('where')).toHaveTextContent(`/users/${USER.id}`);
+  });
+
+  it('정지가 실패해도 확인 창과 사유를 그대로 둔다', async () => {
+    server({ [`POST /admin/users/${USER.id}/suspend`]: { status: 500, body: { error: 'X' } } });
+    const user = userEvent.setup();
+    open();
+    await user.click(await screen.findByRole('button', { name: d.suspend }));
+    const dialog = within(screen.getByRole('alertdialog', { name: d.suspendDialog.title('새벽별') }));
+    await user.type(dialog.getByLabelText(d.suspendDialog.reason), '문의 도배');
+    await user.click(dialog.getByRole('button', { name: d.suspendDialog.confirm }));
+    await screen.findByRole('alert');
+    expect(within(screen.getByRole('alertdialog')).getByLabelText(d.suspendDialog.reason)).toHaveValue('문의 도배');
+  });
 });
