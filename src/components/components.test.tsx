@@ -387,6 +387,49 @@ describe('찾기 칸 — 입력을 멈추고 0.3초 뒤, ✕ 로 지움', () => 
     expect(onCommit).toHaveBeenLastCalledWith('');
     expect(box).toHaveValue('');
   });
+
+  it('부모가 앞뒤 공백을 뗀 값을 주소에 넣어도, 적는 중인 칸의 띄어쓰기를 지우지 않는다', () => {
+    vi.useFakeTimers();
+    const committed: string[] = [];
+    function Parent() {
+      const [q, setQ] = useState('');
+      return (
+        <SearchField
+          label="검색"
+          placeholder="내용 검색"
+          value={q}
+          onCommit={(v) => {
+            committed.push(v);
+            setQ(v.trim());
+          }}
+        />
+      );
+    }
+    ui(<Parent />);
+    const box = screen.getByRole('searchbox', { name: '검색' });
+    fireEvent.change(box, { target: { value: '로그인 ' } });
+    act(() => vi.advanceTimersByTime(300));
+    expect(box).toHaveValue('로그인 ');
+    fireEvent.change(box, { target: { value: '로그인 실패' } });
+    act(() => vi.advanceTimersByTime(300));
+    expect(box).toHaveValue('로그인 실패');
+    expect(committed.at(-1)).toBe('로그인 실패');
+  });
+
+  it('바깥에서 값이 바뀌면(초기화) 칸도 따라간다', () => {
+    vi.useFakeTimers();
+    const { rerender } = ui(<SearchField label="검색" placeholder="내용 검색" value="알림" onCommit={vi.fn()} />);
+    const box = screen.getByRole('searchbox', { name: '검색' });
+    expect(box).toHaveValue('알림');
+    rerender(
+      <MemoryRouter>
+        <UiProvider>
+          <SearchField label="검색" placeholder="내용 검색" value="" onCommit={vi.fn()} />
+        </UiProvider>
+      </MemoryRouter>,
+    );
+    expect(box).toHaveValue('');
+  });
 });
 
 describe('표 — 모든 칸 가운데, 폰은 카드 목록', () => {
