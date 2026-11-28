@@ -294,7 +294,8 @@ function Detail({ user, onReload }: { user: UserDetail; onReload: () => void }) 
           placeholder={t.deleteDialog.placeholder}
           confirmLabel={t.deleteDialog.confirm}
           danger
-          nickname={user.nickname ?? ''}
+          // 닉네임이 없는 옛 계정은 다시 적을 닉네임이 없다 — 칸을 두지 않고 confirmNickname 은 빈 글로 보낸다(서버 계약 변경과 함께).
+          nickname={user.nickname ?? undefined}
           busy={busy}
           onConfirm={(reason, confirmNickname) => run(() => api.deleteUser(user.id, reason, confirmNickname), t.deleteDialog.done, () => navigate('/users', { replace: true }))}
           onCancel={() => setAsking(null)}

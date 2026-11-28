@@ -195,4 +195,23 @@ describe('사용자 상세(D5 · D12 · D13 · D26)', () => {
     expect(callsTo(calls, `DELETE /admin/users/${USER.id}`)[0]?.body).toEqual({ reason: '문의 #131 로 탈퇴 요청', confirmNickname: '새벽별' });
     expect(screen.getByTestId('where')).toHaveTextContent('/users');
   });
+
+  it('닉네임이 없는 사용자는 닉네임 확인 칸 없이 사유만으로 켜지고, confirmNickname 은 빈 글로 보낸다', async () => {
+    const { calls } = server({
+      [`GET /admin/users/${USER.id}`]: { status: 200, body: userDetail({ nickname: null }) },
+      [`DELETE /admin/users/${USER.id}`]: { status: 204 },
+    });
+    const user = userEvent.setup();
+    open();
+    await user.click(await screen.findByRole('button', { name: d.delete }));
+    const dialog = within(screen.getByRole('alertdialog'));
+    expect(dialog.queryByLabelText(d.deleteDialog.nickname)).not.toBeInTheDocument();
+    const confirm = dialog.getByRole('button', { name: d.deleteDialog.confirm });
+    expect(confirm).toBeDisabled();
+    await user.type(dialog.getByLabelText(d.deleteDialog.reason), '문의로 탈퇴 요청');
+    expect(confirm).toBeEnabled();
+    await user.click(confirm);
+    expect(await screen.findByText(d.deleteDialog.done)).toBeInTheDocument();
+    expect(callsTo(calls, `DELETE /admin/users/${USER.id}`)[0]?.body).toEqual({ reason: '문의로 탈퇴 요청', confirmNickname: '' });
+  });
 });
