@@ -103,7 +103,8 @@ function Detail({ inquiry, onChanged, onGone }: DetailProps) {
   const answerId = useId();
   const answerCountId = useId();
   const memoId = useId();
-  const [answer, setAnswer] = useState(inquiry.answer ?? inquiry.answerDraft ?? '');
+  // 서버는 답을 보낼 때 임시 저장을 비운다 — 임시 저장이 있으면 늘 보낸 답보다 새 글이라 그것부터 보인다.
+  const [answer, setAnswer] = useState(inquiry.answerDraft ?? inquiry.answer ?? '');
   const [memo, setMemo] = useState(inquiry.memo ?? '');
   // 답변(보내기 · 임시 저장)만 버튼을 막는다. 메모 자동 저장은 막지 않는다 — 메모 칸에서 바로 "보내기" 를 누르면
   // 칸을 떠나며 메모 저장이 먼저 나가는데, 그때 버튼이 꺼지면 누른 것이 사라진다.

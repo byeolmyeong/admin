@@ -118,6 +118,24 @@ describe('문의 상세(D3)', () => {
     expect(callsTo(calls, PATCH)[0]?.body).toEqual({ answerDraft: '초안' });
   });
 
+  it('답한 문의를 고쳐 임시 저장했으면 다시 열 때 임시 저장을 보이고, 보내기는 그 글을 보낸다', async () => {
+    // 서버는 답을 보낼 때 임시 저장을 비운다 — 임시 저장이 있으면 늘 보낸 답보다 새 글이다.
+    const answered = inquiry({ status: 'ANSWERED', answer: '옛 답', answerDraft: '고친 답', answeredAt: '2026-11-12T07:00:00Z', answeredBy: { id: admin.id, name: 'kim' } });
+    const { calls } = mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: answered }, [PATCH]: { status: 200, body: { ...answered, answer: '고친 답', answerDraft: null } } });
+    const user = userEvent.setup();
+    open();
+    expect(await screen.findByLabelText(t.answer)).toHaveValue('고친 답');
+    await user.click(screen.getByRole('button', { name: t.send }));
+    await screen.findByRole('status');
+    expect(callsTo(calls, PATCH)[0]?.body).toEqual({ answer: '고친 답' });
+  });
+
+  it('임시 저장이 없으면 보낸 답을 보인다', async () => {
+    mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: inquiry({ status: 'ANSWERED', answer: '보낸 답', answerDraft: null }) } });
+    open();
+    expect(await screen.findByLabelText(t.answer)).toHaveValue('보낸 답');
+  });
+
   it('답변 글자 수는 코드 포인트로 세고 2000자를 넘으면 보낼 수 없다', async () => {
     mockFetch({ 'GET /admin/me': me, [GET]: { status: 200, body: one } });
     open();
